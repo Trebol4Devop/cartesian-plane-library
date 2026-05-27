@@ -1,0 +1,19 @@
+name: example
+description: App de pruebas para mi_paquete
+version: 1.0.0
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  cartesian_plane: # Ahora sí, aquí apuntas a la raíz
+    path: ../
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+flutter:
+  uses-material-design: true
