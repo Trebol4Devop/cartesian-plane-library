@@ -50,7 +50,8 @@ class CartesianCanvas extends StatefulWidget {
   State<CartesianCanvas> createState() => CartesianCanvasState();
 }
 
-class CartesianCanvasState extends State<CartesianCanvas> implements CartesianCanvasDelegate {
+class CartesianCanvasState extends State<CartesianCanvas>
+    implements CartesianCanvasDelegate {
   Offset currentOrigin = Offset.zero;
   double currentScale = 60.0;
   bool isInitialized = false;
@@ -87,7 +88,8 @@ class CartesianCanvasState extends State<CartesianCanvas> implements CartesianCa
   @override
   void initState() {
     super.initState();
-    final initialScaleFactor = widget.initialScale <= 0 ? 1.0 : widget.initialScale;
+    final initialScaleFactor =
+        widget.initialScale <= 0 ? 1.0 : widget.initialScale;
     currentScale = initialScaleFactor * 60.0;
     isDrawingModeActive = widget.enableFreehandDrawing;
     isGridVisible = widget.initialShowGrid;
@@ -105,7 +107,8 @@ class CartesianCanvasState extends State<CartesianCanvas> implements CartesianCa
       isDrawingModeActive = widget.enableFreehandDrawing;
     }
     if (oldWidget.initialScale != widget.initialScale) {
-      final initialScaleFactor = widget.initialScale <= 0 ? 1.0 : widget.initialScale;
+      final initialScaleFactor =
+          widget.initialScale <= 0 ? 1.0 : widget.initialScale;
       setState(() {
         currentScale = initialScaleFactor * 60.0;
       });
@@ -118,16 +121,23 @@ class CartesianCanvasState extends State<CartesianCanvas> implements CartesianCa
     super.dispose();
   }
 
-  Offset transformWorldToScreen(double x, double y) => Offset(currentOrigin.dx + x * currentScale, currentOrigin.dy - y * currentScale);
+  Offset transformWorldToScreen(double x, double y) => Offset(
+        currentOrigin.dx + x * currentScale,
+        currentOrigin.dy - y * currentScale,
+      );
 
-  Offset transformScreenToWorld(double px, double py) => Offset((px - currentOrigin.dx) / currentScale, (currentOrigin.dy - py) / currentScale);
+  Offset transformScreenToWorld(double px, double py) => Offset(
+        (px - currentOrigin.dx) / currentScale,
+        (currentOrigin.dy - py) / currentScale,
+      );
 
   @override
   void resetView() {
     if (!mounted) return;
     final canvasSize = context.size;
     if (canvasSize == null) return;
-    final initialScaleFactor = widget.initialScale <= 0 ? 1.0 : widget.initialScale;
+    final initialScaleFactor =
+        widget.initialScale <= 0 ? 1.0 : widget.initialScale;
     setState(() {
       currentOrigin = Offset(canvasSize.width / 2, canvasSize.height / 2);
       currentScale = initialScaleFactor * 60.0;
@@ -139,7 +149,10 @@ class CartesianCanvasState extends State<CartesianCanvas> implements CartesianCa
     if (!mounted) return;
     final canvasSize = context.size;
     if (canvasSize == null) return;
-    applyZoomAtPoint(Offset(canvasSize.width / 2, canvasSize.height / 2), zoomFactor);
+    applyZoomAtPoint(
+      Offset(canvasSize.width / 2, canvasSize.height / 2),
+      zoomFactor,
+    );
   }
 
   @override
@@ -148,7 +161,10 @@ class CartesianCanvasState extends State<CartesianCanvas> implements CartesianCa
     final canvasSize = context.size;
     if (canvasSize == null) return;
     setState(() {
-      currentOrigin = Offset(canvasSize.width / 2 - x * currentScale, canvasSize.height / 2 + y * currentScale);
+      currentOrigin = Offset(
+        canvasSize.width / 2 - x * currentScale,
+        canvasSize.height / 2 + y * currentScale,
+      );
     });
   }
 
@@ -192,23 +208,34 @@ class CartesianCanvasState extends State<CartesianCanvas> implements CartesianCa
     final rangeY = maximumY - minimumY;
     const marginRatio = 0.18;
 
-    final computedScaleX = rangeX > 1e-10 ? (canvasSize.width * (1 - 2 * marginRatio)) / rangeX : double.infinity;
-    final computedScaleY = rangeY > 1e-10 ? (canvasSize.height * (1 - 2 * marginRatio)) / rangeY : double.infinity;
+    final computedScaleX = rangeX > 1e-10
+        ? (canvasSize.width * (1 - 2 * marginRatio)) / rangeX
+        : double.infinity;
+    final computedScaleY = rangeY > 1e-10
+        ? (canvasSize.height * (1 - 2 * marginRatio)) / rangeY
+        : double.infinity;
 
-    final calculatedNewScale = min(computedScaleX, computedScaleY).clamp(1.0, 2000.0);
+    final calculatedNewScale = min(
+      computedScaleX,
+      computedScaleY,
+    ).clamp(1.0, 2000.0);
     final centerX = (minimumX + maximumX) / 2;
     final centerY = (minimumY + maximumY) / 2;
 
     setState(() {
       currentScale = calculatedNewScale;
-      currentOrigin = Offset(canvasSize.width / 2 - centerX * calculatedNewScale, canvasSize.height / 2 + centerY * calculatedNewScale);
+      currentOrigin = Offset(
+        canvasSize.width / 2 - centerX * calculatedNewScale,
+        canvasSize.height / 2 + centerY * calculatedNewScale,
+      );
     });
   }
 
   @override
   Future<ui.Image?> captureImage() async {
     try {
-      final imageBoundary = boundaryRepaintKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
+      final imageBoundary = boundaryRepaintKey.currentContext
+          ?.findRenderObject() as RenderRepaintBoundary?;
       if (imageBoundary == null) return null;
       return imageBoundary.toImage(pixelRatio: 2.0);
     } catch (_) {
@@ -261,8 +288,12 @@ class CartesianCanvasState extends State<CartesianCanvas> implements CartesianCa
     for (final item in widget.items) {
       if (item is SeriesItem) {
         for (final dataPoint in item.points) {
-          final mappedScreenPoint = transformWorldToScreen(dataPoint.x, dataPoint.y);
-          if ((mappedScreenPoint - screenCoordinates).distance < intersectionThreshold) {
+          final mappedScreenPoint = transformWorldToScreen(
+            dataPoint.x,
+            dataPoint.y,
+          );
+          if ((mappedScreenPoint - screenCoordinates).distance <
+              intersectionThreshold) {
             setState(() {
               activeTooltip = TooltipData(
                 screenPosition: screenCoordinates,
@@ -277,7 +308,8 @@ class CartesianCanvasState extends State<CartesianCanvas> implements CartesianCa
         }
       } else if (item is PointItem) {
         final mappedScreenPoint = transformWorldToScreen(item.x, item.y);
-        if ((mappedScreenPoint - screenCoordinates).distance < intersectionThreshold) {
+        if ((mappedScreenPoint - screenCoordinates).distance <
+            intersectionThreshold) {
           setState(() {
             activeTooltip = TooltipData(
               screenPosition: screenCoordinates,
@@ -296,54 +328,64 @@ class CartesianCanvasState extends State<CartesianCanvas> implements CartesianCa
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(builder: (layoutContext, constraints) {
-      final availableSize = Size(constraints.maxWidth, constraints.maxHeight);
+    return LayoutBuilder(
+      builder: (layoutContext, constraints) {
+        final availableSize = Size(constraints.maxWidth, constraints.maxHeight);
 
-      if (!isInitialized) {
-        currentOrigin = Offset(availableSize.width / 2, availableSize.height / 2);
-        isInitialized = true;
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          final containsVisualPoints = widget.items.any((i) => i is SeriesItem || i is PointItem || i is PolygonItem);
-          final initialScaleFactor = widget.initialScale <= 0 ? 1.0 : widget.initialScale;
-          if (containsVisualPoints && initialScaleFactor == 1.0) {
-            fitToContent();
-          } else {
-            setState(() {
-              currentScale = initialScaleFactor * 60.0;
-            });
-          }
-        });
-      }
+        if (!isInitialized) {
+          currentOrigin = Offset(
+            availableSize.width / 2,
+            availableSize.height / 2,
+          );
+          isInitialized = true;
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            final containsVisualPoints = widget.items.any(
+              (i) => i is SeriesItem || i is PointItem || i is PolygonItem,
+            );
+            final initialScaleFactor =
+                widget.initialScale <= 0 ? 1.0 : widget.initialScale;
+            if (containsVisualPoints && initialScaleFactor == 1.0) {
+              fitToContent();
+            } else {
+              setState(() {
+                currentScale = initialScaleFactor * 60.0;
+              });
+            }
+          });
+        }
 
-      return Stack(
-        children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              if (widget.title != null)
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-                  child: Text(
-                    widget.title!,
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: widget.theme.axisColor,
-                      letterSpacing: -0.3,
+        return Stack(
+          children: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                if (widget.title != null)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                    child: Text(
+                      widget.title!,
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: widget.theme.axisColor,
+                        letterSpacing: -0.3,
+                      ),
                     ),
                   ),
+                Expanded(
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(
+                      (widget.title != null || widget.isFullScreen) ? 0 : 12,
+                    ),
+                    child: renderCanvasLayer(availableSize),
+                  ),
                 ),
-              Expanded(
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular((widget.title != null || widget.isFullScreen) ? 0 : 12),
-                  child: renderCanvasLayer(availableSize),
-                ),
-              ),
-            ],
-          ),
-        ],
-      );
-    });
+              ],
+            ),
+          ],
+        );
+      },
+    );
   }
 
   Widget renderCanvasLayer(Size availableSize) {
@@ -354,14 +396,21 @@ class CartesianCanvasState extends State<CartesianCanvas> implements CartesianCa
         child: Listener(
           onPointerSignal: (pointerEvent) {
             if (pointerEvent is PointerScrollEvent) {
-              applyZoomAtPoint(pointerEvent.localPosition, pointerEvent.scrollDelta.dy < 0 ? 1.15 : 0.87);
+              applyZoomAtPoint(
+                pointerEvent.localPosition,
+                pointerEvent.scrollDelta.dy < 0 ? 1.15 : 0.87,
+              );
             }
           },
-          onPointerHover: (pointerEvent) => detectTooltipIntersection(pointerEvent.localPosition),
+          onPointerHover: (pointerEvent) =>
+              detectTooltipIntersection(pointerEvent.localPosition),
           child: GestureDetector(
             onScaleStart: (gestureDetails) {
               if (isDrawingModeActive && gestureDetails.pointerCount == 1) {
-                final worldCoordinates = transformScreenToWorld(gestureDetails.localFocalPoint.dx, gestureDetails.localFocalPoint.dy);
+                final worldCoordinates = transformScreenToWorld(
+                  gestureDetails.localFocalPoint.dx,
+                  gestureDetails.localFocalPoint.dy,
+                );
                 setState(() => activeStroke = [worldCoordinates]);
               } else {
                 previousFocalPoint = gestureDetails.localFocalPoint;
@@ -369,25 +418,42 @@ class CartesianCanvasState extends State<CartesianCanvas> implements CartesianCa
               }
             },
             onScaleUpdate: (gestureDetails) {
-              if (isDrawingModeActive && gestureDetails.pointerCount == 1 && activeStroke != null) {
-                final worldCoordinates = transformScreenToWorld(gestureDetails.localFocalPoint.dx, gestureDetails.localFocalPoint.dy);
-                setState(() => activeStroke = [...activeStroke!, worldCoordinates]);
+              if (isDrawingModeActive &&
+                  gestureDetails.pointerCount == 1 &&
+                  activeStroke != null) {
+                final worldCoordinates = transformScreenToWorld(
+                  gestureDetails.localFocalPoint.dx,
+                  gestureDetails.localFocalPoint.dy,
+                );
+                setState(
+                  () => activeStroke = [...activeStroke!, worldCoordinates],
+                );
               } else {
                 setState(() {
-                  if (gestureDetails.pointerCount >= 2 && previousScaleGesture != null) {
-                    final dynamicFactor = gestureDetails.scale / previousScaleGesture!;
-                    currentOrigin = gestureDetails.localFocalPoint + (currentOrigin - gestureDetails.localFocalPoint) * dynamicFactor;
-                    currentScale = (currentScale * dynamicFactor).clamp(1.0, 3000.0);
+                  if (gestureDetails.pointerCount >= 2 &&
+                      previousScaleGesture != null) {
+                    final dynamicFactor =
+                        gestureDetails.scale / previousScaleGesture!;
+                    currentOrigin = gestureDetails.localFocalPoint +
+                        (currentOrigin - gestureDetails.localFocalPoint) *
+                            dynamicFactor;
+                    currentScale = (currentScale * dynamicFactor).clamp(
+                      1.0,
+                      3000.0,
+                    );
                     previousScaleGesture = gestureDetails.scale;
                   } else if (previousFocalPoint != null) {
-                    currentOrigin += gestureDetails.localFocalPoint - previousFocalPoint!;
+                    currentOrigin +=
+                        gestureDetails.localFocalPoint - previousFocalPoint!;
                   }
                   previousFocalPoint = gestureDetails.localFocalPoint;
                 });
               }
             },
             onScaleEnd: (gestureDetails) {
-              if (isDrawingModeActive && activeStroke != null && activeStroke!.length > 1) {
+              if (isDrawingModeActive &&
+                  activeStroke != null &&
+                  activeStroke!.length > 1) {
                 final finalizedStroke = FreehandItem(
                   worldPoints: List.from(activeStroke!),
                   color: widget.freehandColor,
@@ -405,13 +471,19 @@ class CartesianCanvasState extends State<CartesianCanvas> implements CartesianCa
             onTapUp: (gestureDetails) {
               detectTooltipIntersection(gestureDetails.localPosition);
               if (widget.onTap != null) {
-                final worldCoordinates = transformScreenToWorld(gestureDetails.localPosition.dx, gestureDetails.localPosition.dy);
+                final worldCoordinates = transformScreenToWorld(
+                  gestureDetails.localPosition.dx,
+                  gestureDetails.localPosition.dy,
+                );
                 widget.onTap!(worldCoordinates.dx, worldCoordinates.dy);
               }
             },
             onLongPressStart: (gestureDetails) {
               if (widget.onLongPress != null) {
-                final worldCoordinates = transformScreenToWorld(gestureDetails.localPosition.dx, gestureDetails.localPosition.dy);
+                final worldCoordinates = transformScreenToWorld(
+                  gestureDetails.localPosition.dx,
+                  gestureDetails.localPosition.dy,
+                );
                 widget.onLongPress!(worldCoordinates.dx, worldCoordinates.dy);
               }
             },
@@ -434,15 +506,26 @@ class CartesianCanvasState extends State<CartesianCanvas> implements CartesianCa
                   ),
                 ),
                 ...widget.widgetItems.map((widgetItem) {
-                  final mappedScreenPoint = transformWorldToScreen(widgetItem.x, widgetItem.y);
+                  final mappedScreenPoint = transformWorldToScreen(
+                    widgetItem.x,
+                    widgetItem.y,
+                  );
                   return Positioned(
-                    left: mappedScreenPoint.dx - 50 * (widgetItem.alignment.x + 1) / 2,
-                    top: mappedScreenPoint.dy - 50 * (widgetItem.alignment.y + 1) / 2,
+                    left: mappedScreenPoint.dx -
+                        50 * (widgetItem.alignment.x + 1) / 2,
+                    top: mappedScreenPoint.dy -
+                        50 * (widgetItem.alignment.y + 1) / 2,
                     child: widgetItem.child,
                   );
                 }),
-                if (widget.showLegend) LegendWidget(items: widget.items, theme: widget.theme),
-                if (activeTooltip != null) TooltipWidget(tooltipData: activeTooltip!, size: availableSize, theme: widget.theme),
+                if (widget.showLegend)
+                  LegendWidget(items: widget.items, theme: widget.theme),
+                if (activeTooltip != null)
+                  TooltipWidget(
+                    tooltipData: activeTooltip!,
+                    size: availableSize,
+                    theme: widget.theme,
+                  ),
                 if (widget.showControls && widget.isFullScreen)
                   FloatingToolbar(
                     theme: widget.theme,
@@ -453,13 +536,21 @@ class CartesianCanvasState extends State<CartesianCanvas> implements CartesianCa
                     onResetView: resetView,
                     onZoomIn: () => zoomFromCenter(1.3),
                     onZoomOut: () => zoomFromCenter(0.77),
-                    onToggleGrid: () => setState(() => isGridVisible = !isGridVisible),
-                    onToggleDrawing: () => setState(() => isDrawingModeActive = !isDrawingModeActive),
+                    onToggleGrid: () =>
+                        setState(() => isGridVisible = !isGridVisible),
+                    onToggleDrawing: () => setState(
+                      () => isDrawingModeActive = !isDrawingModeActive,
+                    ),
                     onClearFreehand: clearFreehand,
                     onToggleFullScreen: toggleFullScreen,
                   ),
-                if (widget.showControls && activeTooltip != null && widget.isFullScreen)
-                  FloatingCoordinates(tooltipData: activeTooltip!, theme: widget.theme),
+                if (widget.showControls &&
+                    activeTooltip != null &&
+                    widget.isFullScreen)
+                  FloatingCoordinates(
+                    tooltipData: activeTooltip!,
+                    theme: widget.theme,
+                  ),
                 if (widget.showControls && !widget.isFullScreen)
                   Positioned(
                     top: 12,
@@ -471,7 +562,10 @@ class CartesianCanvasState extends State<CartesianCanvas> implements CartesianCa
                         child: Container(
                           decoration: BoxDecoration(
                             color: widget.theme.background.withOpacity(0.75),
-                            border: Border.all(color: widget.theme.axisColor.withOpacity(0.1), width: 1),
+                            border: Border.all(
+                              color: widget.theme.axisColor.withOpacity(0.1),
+                              width: 1,
+                            ),
                           ),
                           child: ControlIconButton(
                             iconData: Icons.fullscreen_rounded,
@@ -543,9 +637,15 @@ class CanvasRenderer extends CustomPainter {
         ..strokeCap = StrokeCap.round
         ..strokeJoin = StrokeJoin.round;
       final activePath = Path()
-        ..moveTo(worldToScreen(currentStroke![0].dx, currentStroke![0].dy).dx, worldToScreen(currentStroke![0].dx, currentStroke![0].dy).dy);
+        ..moveTo(
+          worldToScreen(currentStroke![0].dx, currentStroke![0].dy).dx,
+          worldToScreen(currentStroke![0].dx, currentStroke![0].dy).dy,
+        );
       for (int i = 1; i < currentStroke!.length; i++) {
-        final mappedScreenPoint = worldToScreen(currentStroke![i].dx, currentStroke![i].dy);
+        final mappedScreenPoint = worldToScreen(
+          currentStroke![i].dx,
+          currentStroke![i].dy,
+        );
         activePath.lineTo(mappedScreenPoint.dx, mappedScreenPoint.dy);
       }
       canvas.drawPath(activePath, activeStrokePaint);
@@ -561,53 +661,124 @@ class CanvasRenderer extends CustomPainter {
       ..strokeWidth = theme.axisWidth
       ..color = theme.axisColor;
 
-    final startXBound = ((-origin.dx) / scale / adaptiveStep).floor() * adaptiveStep;
-    final endXBound = ((size.width - origin.dx) / scale / adaptiveStep).ceil() * adaptiveStep;
-    final startYBound = (-(size.height - origin.dy) / scale / adaptiveStep).floor() * adaptiveStep;
+    final startXBound =
+        ((-origin.dx) / scale / adaptiveStep).floor() * adaptiveStep;
+    final endXBound =
+        ((size.width - origin.dx) / scale / adaptiveStep).ceil() * adaptiveStep;
+    final startYBound =
+        (-(size.height - origin.dy) / scale / adaptiveStep).floor() *
+            adaptiveStep;
     final endYBound = (origin.dy / scale / adaptiveStep).ceil() * adaptiveStep;
 
-    for (double xValue = startXBound; xValue <= endXBound + adaptiveStep; xValue += adaptiveStep) {
+    for (double xValue = startXBound;
+        xValue <= endXBound + adaptiveStep;
+        xValue += adaptiveStep) {
       final pixelX = origin.dx + xValue * scale;
-      canvas.drawLine(Offset(pixelX, 0), Offset(pixelX, size.height), xValue.abs() < 1e-9 ? primaryAxisPaint : gridLinePaint);
+      canvas.drawLine(
+        Offset(pixelX, 0),
+        Offset(pixelX, size.height),
+        xValue.abs() < 1e-9 ? primaryAxisPaint : gridLinePaint,
+      );
     }
-    for (double yValue = startYBound; yValue <= endYBound + adaptiveStep; yValue += adaptiveStep) {
+    for (double yValue = startYBound;
+        yValue <= endYBound + adaptiveStep;
+        yValue += adaptiveStep) {
       final pixelY = origin.dy - yValue * scale;
-      canvas.drawLine(Offset(0, pixelY), Offset(size.width, pixelY), yValue.abs() < 1e-9 ? primaryAxisPaint : gridLinePaint);
+      canvas.drawLine(
+        Offset(0, pixelY),
+        Offset(size.width, pixelY),
+        yValue.abs() < 1e-9 ? primaryAxisPaint : gridLinePaint,
+      );
     }
   }
 
   void drawAxisLabels(Canvas canvas, Size size) {
     final adaptiveStep = calculateAdaptiveStep(scale);
-    final textConfiguration = TextStyle(fontSize: theme.labelFontSize, color: theme.labelColor, fontWeight: FontWeight.w500);
+    final textConfiguration = TextStyle(
+      fontSize: theme.labelFontSize,
+      color: theme.labelColor,
+      fontWeight: FontWeight.w500,
+    );
     final activeTextPainter = TextPainter(textDirection: TextDirection.ltr);
 
-    final startXBound = ((-origin.dx) / scale / adaptiveStep).floor() * adaptiveStep;
-    final endXBound = ((size.width - origin.dx) / scale / adaptiveStep).ceil() * adaptiveStep;
-    final startYBound = (-(size.height - origin.dy) / scale / adaptiveStep).floor() * adaptiveStep;
+    final startXBound =
+        ((-origin.dx) / scale / adaptiveStep).floor() * adaptiveStep;
+    final endXBound =
+        ((size.width - origin.dx) / scale / adaptiveStep).ceil() * adaptiveStep;
+    final startYBound =
+        (-(size.height - origin.dy) / scale / adaptiveStep).floor() *
+            adaptiveStep;
     final endYBound = (origin.dy / scale / adaptiveStep).ceil() * adaptiveStep;
 
-    for (double xValue = startXBound; xValue <= endXBound + adaptiveStep; xValue += adaptiveStep) {
+    for (double xValue = startXBound;
+        xValue <= endXBound + adaptiveStep;
+        xValue += adaptiveStep) {
       if (xValue.abs() < 1e-9) continue;
       final pixelX = origin.dx + xValue * scale;
       final labelYPosition = (origin.dy + 8).clamp(8.0, size.height - 20.0);
-      renderTextSpan(canvas, activeTextPainter, formatNumber(xValue), Offset(pixelX, labelYPosition), textConfiguration, centerAlignment: true);
+      renderTextSpan(
+        canvas,
+        activeTextPainter,
+        formatNumber(xValue),
+        Offset(pixelX, labelYPosition),
+        textConfiguration,
+        centerAlignment: true,
+      );
     }
-    for (double yValue = startYBound; yValue <= endYBound + adaptiveStep; yValue += adaptiveStep) {
+    for (double yValue = startYBound;
+        yValue <= endYBound + adaptiveStep;
+        yValue += adaptiveStep) {
       if (yValue.abs() < 1e-9) continue;
       final pixelY = origin.dy - yValue * scale;
       final labelXPosition = (origin.dx - 8).clamp(8.0, size.width - 8.0);
-      renderTextSpan(canvas, activeTextPainter, formatNumber(yValue), Offset(labelXPosition, pixelY), textConfiguration, rightAlignment: true);
+      renderTextSpan(
+        canvas,
+        activeTextPainter,
+        formatNumber(yValue),
+        Offset(labelXPosition, pixelY),
+        textConfiguration,
+        rightAlignment: true,
+      );
     }
-    
-    final axisLabelStyle = textConfiguration.copyWith(fontWeight: FontWeight.w700, color: theme.axisColor);
-    renderTextSpan(canvas, activeTextPainter, 'X', Offset(size.width - 16, (origin.dy - 20).clamp(4.0, size.height - 20.0)), axisLabelStyle);
-    renderTextSpan(canvas, activeTextPainter, 'Y', Offset((origin.dx + 12).clamp(4.0, size.width - 16.0), 12), axisLabelStyle);
-    renderTextSpan(canvas, activeTextPainter, '0', Offset(origin.dx - 8, origin.dy + 8), textConfiguration, rightAlignment: true);
+
+    final axisLabelStyle = textConfiguration.copyWith(
+      fontWeight: FontWeight.w700,
+      color: theme.axisColor,
+    );
+    renderTextSpan(
+      canvas,
+      activeTextPainter,
+      'X',
+      Offset(size.width - 16, (origin.dy - 20).clamp(4.0, size.height - 20.0)),
+      axisLabelStyle,
+    );
+    renderTextSpan(
+      canvas,
+      activeTextPainter,
+      'Y',
+      Offset((origin.dx + 12).clamp(4.0, size.width - 16.0), 12),
+      axisLabelStyle,
+    );
+    renderTextSpan(
+      canvas,
+      activeTextPainter,
+      '0',
+      Offset(origin.dx - 8, origin.dy + 8),
+      textConfiguration,
+      rightAlignment: true,
+    );
   }
 
   void drawOriginDot(Canvas canvas) {
     canvas.drawCircle(origin, 4.5, Paint()..color = theme.originDotColor);
-    canvas.drawCircle(origin, 4.5, Paint()..color = theme.background..style = PaintingStyle.stroke..strokeWidth = 1.5);
+    canvas.drawCircle(
+      origin,
+      4.5,
+      Paint()
+        ..color = theme.background
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.5,
+    );
   }
 
   double calculateAdaptiveStep(double currentScaleValue) {
@@ -621,15 +792,27 @@ class CanvasRenderer extends CustomPainter {
   }
 
   String formatNumber(double numericValue) {
-    if (numericValue == numericValue.truncateToDouble()) return numericValue.toInt().toString();
-    if (numericValue.abs() < 0.01 || numericValue.abs() >= 10000) return numericValue.toStringAsExponential(1);
+    if (numericValue == numericValue.truncateToDouble())
+      return numericValue.toInt().toString();
+    if (numericValue.abs() < 0.01 || numericValue.abs() >= 10000)
+      return numericValue.toStringAsExponential(1);
     return numericValue.toStringAsFixed(2);
   }
 
-  void renderTextSpan(Canvas canvas, TextPainter painter, String textualContent, Offset pos, TextStyle style, {bool centerAlignment = false, bool rightAlignment = false}) {
+  void renderTextSpan(
+    Canvas canvas,
+    TextPainter painter,
+    String textualContent,
+    Offset pos,
+    TextStyle style, {
+    bool centerAlignment = false,
+    bool rightAlignment = false,
+  }) {
     painter.text = TextSpan(text: textualContent, style: style);
     painter.layout();
-    final offsetX = rightAlignment ? -painter.width : (centerAlignment ? -painter.width / 2 : 0.0);
+    final offsetX = rightAlignment
+        ? -painter.width
+        : (centerAlignment ? -painter.width / 2 : 0.0);
     painter.paint(canvas, pos + Offset(offsetX, -painter.height / 2));
   }
 
@@ -649,7 +832,13 @@ class TooltipData {
   final double x, y;
   final String? label;
   final Color color;
-  const TooltipData({required this.screenPosition, required this.x, required this.y, this.label, required this.color});
+  const TooltipData({
+    required this.screenPosition,
+    required this.x,
+    required this.y,
+    this.label,
+    required this.color,
+  });
 }
 
 class LegendWidget extends StatelessWidget {
@@ -663,7 +852,8 @@ class LegendWidget extends StatelessWidget {
     final seriesItemsCollection = items.whereType<SeriesItem>().toList();
     final functionItemsCollection = items.whereType<FunctionItem>().toList();
 
-    if (seriesItemsCollection.isEmpty && functionItemsCollection.every((f) => f.name == null)) {
+    if (seriesItemsCollection.isEmpty &&
+        functionItemsCollection.every((f) => f.name == null)) {
       return const SizedBox.shrink();
     }
 
@@ -679,17 +869,38 @@ class LegendWidget extends StatelessWidget {
             decoration: BoxDecoration(
               color: theme.background.withOpacity(0.75),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: theme.axisColor.withOpacity(0.1), width: 1),
+              border: Border.all(
+                color: theme.axisColor.withOpacity(0.1),
+                width: 1,
+              ),
               boxShadow: [
-                BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4)),
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
               ],
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                for (final s in seriesItemsCollection) LegendRow(color: s.color, name: s.name, isLine: s.connectPoints, theme: theme),
-                for (final f in functionItemsCollection.where((f) => f.name != null)) LegendRow(color: f.color, name: f.name!, isLine: true, theme: theme),
+                for (final s in seriesItemsCollection)
+                  LegendRow(
+                    color: s.color,
+                    name: s.name,
+                    isLine: s.connectPoints,
+                    theme: theme,
+                  ),
+                for (final f in functionItemsCollection.where(
+                  (f) => f.name != null,
+                ))
+                  LegendRow(
+                    color: f.color,
+                    name: f.name!,
+                    isLine: true,
+                    theme: theme,
+                  ),
               ],
             ),
           ),
@@ -704,7 +915,11 @@ class TooltipWidget extends StatelessWidget {
   final Size size;
   final CartesianCanvasTheme theme;
 
-  const TooltipWidget({required this.tooltipData, required this.size, required this.theme});
+  const TooltipWidget({
+    required this.tooltipData,
+    required this.size,
+    required this.theme,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -714,10 +929,13 @@ class TooltipWidget extends StatelessWidget {
 
     double positionLeft = tooltipData.screenPosition.dx + 16;
     double positionTop = tooltipData.screenPosition.dy - tooltipHeight - 12;
-    if (positionLeft + tooltipWidth > size.width - boundaryMargin) positionLeft = tooltipData.screenPosition.dx - tooltipWidth - 16;
-    if (positionTop < boundaryMargin) positionTop = tooltipData.screenPosition.dy + 16;
+    if (positionLeft + tooltipWidth > size.width - boundaryMargin)
+      positionLeft = tooltipData.screenPosition.dx - tooltipWidth - 16;
+    if (positionTop < boundaryMargin)
+      positionTop = tooltipData.screenPosition.dy + 16;
 
-    final tooltipLabel = tooltipData.label ?? 'X: ${tooltipData.x.toStringAsFixed(4)}\nY: ${tooltipData.y.toStringAsFixed(4)}';
+    final tooltipLabel = tooltipData.label ??
+        'X: ${tooltipData.x.toStringAsFixed(4)}\nY: ${tooltipData.y.toStringAsFixed(4)}';
 
     return Positioned(
       left: positionLeft,
@@ -732,9 +950,16 @@ class TooltipWidget extends StatelessWidget {
             decoration: BoxDecoration(
               color: theme.tooltipBackground,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.white.withOpacity(0.1), width: 1),
+              border: Border.all(
+                color: Colors.white.withOpacity(0.1),
+                width: 1,
+              ),
               boxShadow: [
-                BoxShadow(color: Colors.black.withOpacity(0.15), blurRadius: 12, offset: const Offset(0, 6)),
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.15),
+                  blurRadius: 12,
+                  offset: const Offset(0, 6),
+                ),
               ],
             ),
             child: Row(
@@ -745,12 +970,21 @@ class TooltipWidget extends StatelessWidget {
                   margin: const EdgeInsets.only(top: 4, right: 10),
                   width: 8,
                   height: 8,
-                  decoration: BoxDecoration(color: tooltipData.color, shape: BoxShape.circle),
+                  decoration: BoxDecoration(
+                    color: tooltipData.color,
+                    shape: BoxShape.circle,
+                  ),
                 ),
                 Expanded(
                   child: Text(
                     tooltipLabel,
-                    style: TextStyle(fontSize: 12, color: theme.tooltipTextColor, fontFamily: 'monospace', fontWeight: FontWeight.w600, height: 1.4),
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: theme.tooltipTextColor,
+                      fontFamily: 'monospace',
+                      fontWeight: FontWeight.w600,
+                      height: 1.4,
+                    ),
                   ),
                 ),
               ],
@@ -804,7 +1038,10 @@ class FloatingToolbar extends StatelessWidget {
             decoration: BoxDecoration(
               color: theme.background.withOpacity(0.75),
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: theme.axisColor.withOpacity(0.1), width: 1),
+              border: Border.all(
+                color: theme.axisColor.withOpacity(0.1),
+                width: 1,
+              ),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withOpacity(0.08),
@@ -818,8 +1055,12 @@ class FloatingToolbar extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 ControlIconButton(
-                  iconData: isFullScreen ? Icons.fullscreen_exit_rounded : Icons.fullscreen_rounded,
-                  tooltipText: isFullScreen ? 'Salir de pantalla completa' : 'Pantalla completa',
+                  iconData: isFullScreen
+                      ? Icons.fullscreen_exit_rounded
+                      : Icons.fullscreen_rounded,
+                  tooltipText: isFullScreen
+                      ? 'Salir de pantalla completa'
+                      : 'Pantalla completa',
                   onTapCallback: onToggleFullScreen,
                   activeTheme: theme,
                 ),
@@ -829,13 +1070,33 @@ class FloatingToolbar extends StatelessWidget {
                   color: theme.axisColor.withOpacity(0.15),
                   margin: const EdgeInsets.symmetric(vertical: 10),
                 ),
-                ControlIconButton(iconData: Icons.center_focus_strong_rounded, tooltipText: 'Ajustar al contenido', onTapCallback: onFitToContent, activeTheme: theme),
+                ControlIconButton(
+                  iconData: Icons.center_focus_strong_rounded,
+                  tooltipText: 'Ajustar al contenido',
+                  onTapCallback: onFitToContent,
+                  activeTheme: theme,
+                ),
                 const SizedBox(height: 8),
-                ControlIconButton(iconData: Icons.refresh_rounded, tooltipText: 'Restablecer vista', onTapCallback: onResetView, activeTheme: theme),
+                ControlIconButton(
+                  iconData: Icons.refresh_rounded,
+                  tooltipText: 'Restablecer vista',
+                  onTapCallback: onResetView,
+                  activeTheme: theme,
+                ),
                 const SizedBox(height: 8),
-                ControlIconButton(iconData: Icons.add_rounded, tooltipText: 'Acercar', onTapCallback: onZoomIn, activeTheme: theme),
+                ControlIconButton(
+                  iconData: Icons.add_rounded,
+                  tooltipText: 'Acercar',
+                  onTapCallback: onZoomIn,
+                  activeTheme: theme,
+                ),
                 const SizedBox(height: 8),
-                ControlIconButton(iconData: Icons.remove_rounded, tooltipText: 'Alejar', onTapCallback: onZoomOut, activeTheme: theme),
+                ControlIconButton(
+                  iconData: Icons.remove_rounded,
+                  tooltipText: 'Alejar',
+                  onTapCallback: onZoomOut,
+                  activeTheme: theme,
+                ),
                 Container(
                   height: 1,
                   width: 24,
@@ -843,16 +1104,31 @@ class FloatingToolbar extends StatelessWidget {
                   margin: const EdgeInsets.symmetric(vertical: 10),
                 ),
                 ControlIconButton(
-                  iconData: gridVisible ? Icons.grid_on_rounded : Icons.grid_off_rounded, 
-                  tooltipText: gridVisible ? 'Ocultar cuadrícula' : 'Mostrar cuadrícula', 
-                  onTapCallback: onToggleGrid, 
-                  activeTheme: theme, 
-                  isActiveState: gridVisible
+                  iconData: gridVisible
+                      ? Icons.grid_on_rounded
+                      : Icons.grid_off_rounded,
+                  tooltipText:
+                      gridVisible ? 'Ocultar cuadrícula' : 'Mostrar cuadrícula',
+                  onTapCallback: onToggleGrid,
+                  activeTheme: theme,
+                  isActiveState: gridVisible,
                 ),
                 const SizedBox(height: 8),
-                ControlIconButton(iconData: drawingMode ? Icons.brush_rounded : Icons.brush_outlined, tooltipText: 'Modo dibujo', onTapCallback: onToggleDrawing, activeTheme: theme, isActiveState: drawingMode),
+                ControlIconButton(
+                  iconData:
+                      drawingMode ? Icons.brush_rounded : Icons.brush_outlined,
+                  tooltipText: 'Modo dibujo',
+                  onTapCallback: onToggleDrawing,
+                  activeTheme: theme,
+                  isActiveState: drawingMode,
+                ),
                 const SizedBox(height: 8),
-                ControlIconButton(iconData: Icons.delete_sweep_rounded, tooltipText: 'Borrar dibujos', onTapCallback: onClearFreehand, activeTheme: theme),
+                ControlIconButton(
+                  iconData: Icons.delete_sweep_rounded,
+                  tooltipText: 'Borrar dibujos',
+                  onTapCallback: onClearFreehand,
+                  activeTheme: theme,
+                ),
               ],
             ),
           ),
@@ -882,7 +1158,10 @@ class FloatingCoordinates extends StatelessWidget {
             decoration: BoxDecoration(
               color: theme.background.withOpacity(0.75),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: theme.axisColor.withOpacity(0.1), width: 1),
+              border: Border.all(
+                color: theme.axisColor.withOpacity(0.1),
+                width: 1,
+              ),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withOpacity(0.06),
@@ -894,11 +1173,20 @@ class FloatingCoordinates extends StatelessWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.location_searching_rounded, size: 14, color: theme.originDotColor),
+                Icon(
+                  Icons.location_searching_rounded,
+                  size: 14,
+                  color: theme.originDotColor,
+                ),
                 const SizedBox(width: 8),
                 Text(
                   'X: ${tooltipData.x.toStringAsFixed(3)}   Y: ${tooltipData.y.toStringAsFixed(3)}',
-                  style: TextStyle(fontFamily: 'monospace', fontSize: 12.5, fontWeight: FontWeight.w600, color: theme.labelColor),
+                  style: TextStyle(
+                    fontFamily: 'monospace',
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w600,
+                    color: theme.labelColor,
+                  ),
                 ),
               ],
             ),
@@ -915,7 +1203,12 @@ class LegendRow extends StatelessWidget {
   final bool isLine;
   final CartesianCanvasTheme theme;
 
-  const LegendRow({required this.color, required this.name, required this.isLine, required this.theme});
+  const LegendRow({
+    required this.color,
+    required this.name,
+    required this.isLine,
+    required this.theme,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -926,17 +1219,30 @@ class LegendRow extends StatelessWidget {
         children: [
           isLine
               ? Container(
-                  width: 16, 
-                  height: 3, 
-                  decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(2))
+                  width: 16,
+                  height: 3,
+                  decoration: BoxDecoration(
+                    color: color,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
                 )
               : Container(
-                  width: 10, 
-                  height: 10, 
-                  decoration: BoxDecoration(color: color, shape: BoxShape.circle)
+                  width: 10,
+                  height: 10,
+                  decoration: BoxDecoration(
+                    color: color,
+                    shape: BoxShape.circle,
+                  ),
                 ),
           const SizedBox(width: 10),
-          Text(name, style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w500, color: theme.axisColor.withOpacity(0.85))),
+          Text(
+            name,
+            style: TextStyle(
+              fontSize: 12.5,
+              fontWeight: FontWeight.w500,
+              color: theme.axisColor.withOpacity(0.85),
+            ),
+          ),
         ],
       ),
     );
@@ -950,7 +1256,13 @@ class ControlIconButton extends StatelessWidget {
   final CartesianCanvasTheme activeTheme;
   final bool isActiveState;
 
-  const ControlIconButton({required this.iconData, required this.tooltipText, required this.onTapCallback, required this.activeTheme, this.isActiveState = false});
+  const ControlIconButton({
+    required this.iconData,
+    required this.tooltipText,
+    required this.onTapCallback,
+    required this.activeTheme,
+    this.isActiveState = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -974,17 +1286,23 @@ class ControlIconButton extends StatelessWidget {
             duration: const Duration(milliseconds: 200),
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: isActiveState ? activeTheme.originDotColor.withOpacity(0.15) : Colors.transparent,
+              color: isActiveState
+                  ? activeTheme.originDotColor.withOpacity(0.15)
+                  : Colors.transparent,
               border: Border.all(
-                color: isActiveState ? activeTheme.originDotColor.withOpacity(0.6) : Colors.transparent, 
-                width: 1.5
+                color: isActiveState
+                    ? activeTheme.originDotColor.withOpacity(0.6)
+                    : Colors.transparent,
+                width: 1.5,
               ),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Icon(
-              iconData, 
-              size: 20, 
-              color: isActiveState ? activeTheme.originDotColor : activeTheme.axisColor.withOpacity(0.7)
+              iconData,
+              size: 20,
+              color: isActiveState
+                  ? activeTheme.originDotColor
+                  : activeTheme.axisColor.withOpacity(0.7),
             ),
           ),
         ),

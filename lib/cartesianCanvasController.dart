@@ -17,7 +17,8 @@ abstract class CartesianCanvasDelegate {
 class CartesianCanvasController extends ChangeNotifier {
   CartesianCanvasDelegate? canvasDelegate;
 
-  void attach(CartesianCanvasDelegate newDelegate) => canvasDelegate = newDelegate;
+  void attach(CartesianCanvasDelegate newDelegate) =>
+      canvasDelegate = newDelegate;
 
   void detach() => canvasDelegate = null;
 
@@ -31,13 +32,15 @@ class CartesianCanvasController extends ChangeNotifier {
 
   void goToPoint(double x, double y) => canvasDelegate?.goToPoint(x, y);
 
-  Future<ui.Image?> captureImage() async => await canvasDelegate?.captureImage();
+  Future<ui.Image?> captureImage() async =>
+      await canvasDelegate?.captureImage();
 
   bool get drawingMode => canvasDelegate?.drawingMode ?? false;
 
   set drawingMode(bool isEnabled) => canvasDelegate?.setDrawingMode(isEnabled);
 
-  void setDrawingMode(bool isEnabled) => canvasDelegate?.setDrawingMode(isEnabled);
+  void setDrawingMode(bool isEnabled) =>
+      canvasDelegate?.setDrawingMode(isEnabled);
 
   void clearFreehand() => canvasDelegate?.clearFreehand();
 
@@ -45,5 +48,6 @@ class CartesianCanvasController extends ChangeNotifier {
 
   set gridVisible(bool isVisible) => canvasDelegate?.setGridVisible(isVisible);
 
-  void setGridVisible(bool isVisible) => canvasDelegate?.setGridVisible(isVisible);
+  void setGridVisible(bool isVisible) =>
+      canvasDelegate?.setGridVisible(isVisible);
 }
