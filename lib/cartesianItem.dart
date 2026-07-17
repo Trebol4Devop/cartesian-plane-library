@@ -2,12 +2,24 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:math_expressions/math_expressions.dart';
 
+/// A function signature for converting world coordinates to screen coordinates.
 typedef WorldToScreen = Offset Function(double x, double y);
+
+/// A function signature for converting screen coordinates to world coordinates.
 typedef ScreenToWorld = Offset Function(double px, double py);
 
+/// The base class for all drawable items on the Cartesian Plane.
+///
+/// Subclass this to create custom shapes, functions, or annotations that can be
+/// rendered onto the [CartesianCanvas].
 abstract class CartesianItem {
+  /// Default constructor for [CartesianItem].
   const CartesianItem();
 
+  /// Called by the canvas to paint this item onto the screen.
+  /// 
+  /// The [canvas] and [size] are provided by the Flutter framework. Use [worldToScreen] 
+  /// to translate mathematical coordinates into on-screen pixels.
   void paint(
     Canvas canvas,
     Size size,
@@ -17,13 +29,27 @@ abstract class CartesianItem {
   );
 }
 
+/// An item that represents a single point (coordinate) on the Cartesian Plane.
 class PointItem extends CartesianItem {
+  /// The X coordinate in the cartesian space.
   final double x;
+  
+  /// The Y coordinate in the cartesian space.
   final double y;
+  
+  /// The color of the point dot.
   final Color color;
+  
+  /// The radius of the point dot in screen pixels.
   final double radius;
+  
+  /// An optional text label displayed next to the point.
   final String? label;
+  
+  /// The style applied to the [label] text.
   final TextStyle? labelStyle;
+  
+  /// The pixel offset applied to the label relative to the center of the point.
   final Offset labelOffset;
 
   const PointItem({
