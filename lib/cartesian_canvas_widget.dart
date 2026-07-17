@@ -5,9 +5,9 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 
-import 'cartesianItem.dart';
-import 'cartesianCanvasTheme.dart';
-import 'cartesianCanvasController.dart';
+import 'cartesian_item.dart';
+import 'cartesian_canvas_theme.dart';
+import 'cartesian_canvas_controller.dart';
 
 class CartesianCanvas extends StatefulWidget {
   final List<CartesianItem> items;
