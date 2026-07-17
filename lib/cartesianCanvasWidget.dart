@@ -464,7 +464,7 @@ class CartesianCanvasState extends State<CartesianCanvas>
             },
             child: Listener(
               onPointerSignal: (pointerEvent) {
-                if (pointerEvent is PointerScrollEvent) {
+                if (widget.isFullScreen && pointerEvent is PointerScrollEvent) {
                   applyZoomAtPoint(
                     pointerEvent.localPosition,
                     pointerEvent.scrollDelta.dy < 0 ? 1.15 : 0.87,
