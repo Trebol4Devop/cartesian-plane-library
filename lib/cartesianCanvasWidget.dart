@@ -61,7 +61,10 @@ class CartesianCanvasState extends State<CartesianCanvas>
   TooltipData? activeTooltip;
   List<Offset>? activeStroke;
   bool isDrawingModeActive = false;
+  bool isEraserModeActive = false;
   bool isGridVisible = true;
+  Offset? mousePosition;
+  double currentEraserWidth = 20.0;
   final List<FreehandItem> recordedStrokes = [];
   final List<FreehandItem> undoneStrokes = [];
   final GlobalKey boundaryRepaintKey = GlobalKey();
@@ -72,6 +75,14 @@ class CartesianCanvasState extends State<CartesianCanvas>
   @override
   void setDrawingMode(bool isEnabled) {
     setState(() => isDrawingModeActive = isEnabled);
+  }
+
+  @override
+  bool get eraserMode => isEraserModeActive;
+
+  @override
+  void setEraserMode(bool isEnabled) {
+    setState(() => isEraserModeActive = isEnabled);
   }
 
   @override
@@ -268,7 +279,8 @@ class CartesianCanvasState extends State<CartesianCanvas>
 
   void applyZoomAtPoint(Offset focalPoint, double zoomFactor) {
     setState(() {
-      final clampedScale = (currentScale * zoomFactor).clamp(0.00001, 5000000.0);
+      final clampedScale =
+          (currentScale * zoomFactor).clamp(0.00001, 5000000.0);
       final actualFactor = clampedScale / currentScale;
       currentOrigin = focalPoint + (currentOrigin - focalPoint) * actualFactor;
       currentScale = clampedScale;
@@ -441,202 +453,315 @@ class CartesianCanvasState extends State<CartesianCanvas>
 
   Widget renderCanvasLayer(Size availableSize) {
     return RepaintBoundary(
-      key: boundaryRepaintKey,
-      child: Container(
-        color: widget.theme.background,
-        child: Listener(
-          onPointerSignal: (pointerEvent) {
-            if (pointerEvent is PointerScrollEvent) {
-              applyZoomAtPoint(
-                pointerEvent.localPosition,
-                pointerEvent.scrollDelta.dy < 0 ? 1.15 : 0.87,
-              );
-            }
-          },
-          onPointerHover: (pointerEvent) =>
-              detectTooltipIntersection(pointerEvent.localPosition),
-          child: GestureDetector(
-            onScaleStart: (gestureDetails) {
-              if (isDrawingModeActive && gestureDetails.pointerCount == 1) {
-                final worldCoordinates = transformScreenToWorld(
-                  gestureDetails.localFocalPoint.dx,
-                  gestureDetails.localFocalPoint.dy,
-                );
-                setState(() => activeStroke = [worldCoordinates]);
-              } else {
-                previousFocalPoint = gestureDetails.localFocalPoint;
-                previousScaleGesture = 1.0;
+        key: boundaryRepaintKey,
+        child: Container(
+          color: widget.theme.background,
+          child: MouseRegion(
+            onExit: (event) {
+              if (mousePosition != null) {
+                setState(() => mousePosition = null);
               }
             },
-            onScaleUpdate: (gestureDetails) {
-              if (isDrawingModeActive &&
-                  gestureDetails.pointerCount == 1 &&
-                  activeStroke != null) {
-                final worldCoordinates = transformScreenToWorld(
-                  gestureDetails.localFocalPoint.dx,
-                  gestureDetails.localFocalPoint.dy,
-                );
-                setState(
-                  () => activeStroke = [...activeStroke!, worldCoordinates],
-                );
-              } else {
-                setState(() {
-                  if (gestureDetails.pointerCount >= 2 &&
-                      previousScaleGesture != null) {
-                    final dynamicFactor =
-                        gestureDetails.scale / previousScaleGesture!;
-                    final proposedScale = currentScale * dynamicFactor;
-                    final clampedScale = proposedScale.clamp(0.00001, 5000000.0);
-                    final actualFactor = clampedScale / currentScale;
-                    currentOrigin = gestureDetails.localFocalPoint +
-                        (currentOrigin - gestureDetails.localFocalPoint) *
-                            actualFactor;
-                    currentScale = clampedScale;
-                    previousScaleGesture = gestureDetails.scale;
-                  } else if (previousFocalPoint != null) {
-                    currentOrigin +=
-                        gestureDetails.localFocalPoint - previousFocalPoint!;
+            child: Listener(
+              onPointerSignal: (pointerEvent) {
+                if (pointerEvent is PointerScrollEvent) {
+                  applyZoomAtPoint(
+                    pointerEvent.localPosition,
+                    pointerEvent.scrollDelta.dy < 0 ? 1.15 : 0.87,
+                  );
+                }
+              },
+              onPointerHover: (pointerEvent) {
+                detectTooltipIntersection(pointerEvent.localPosition);
+                if (isEraserModeActive) {
+                  setState(() => mousePosition = pointerEvent.localPosition);
+                }
+              },
+              child: GestureDetector(
+                onScaleStart: (gestureDetails) {
+                  if ((isDrawingModeActive || isEraserModeActive) &&
+                      gestureDetails.pointerCount == 1) {
+                    final worldCoordinates = transformScreenToWorld(
+                      gestureDetails.localFocalPoint.dx,
+                      gestureDetails.localFocalPoint.dy,
+                    );
+                    setState(() => activeStroke = [worldCoordinates]);
+                  } else {
+                    previousFocalPoint = gestureDetails.localFocalPoint;
+                    previousScaleGesture = 1.0;
                   }
-                  previousFocalPoint = gestureDetails.localFocalPoint;
-                });
-              }
-            },
-            onScaleEnd: (gestureDetails) {
-              if (isDrawingModeActive &&
-                  activeStroke != null &&
-                  activeStroke!.length > 1) {
-                final finalizedStroke = FreehandItem(
-                  worldPoints: List.from(activeStroke!),
-                  color: widget.freehandColor,
-                  strokeWidth: widget.freehandWidth,
-                );
-                setState(() {
-                  recordedStrokes.add(finalizedStroke);
-                  undoneStrokes.clear();
-                });
-                widget.onFreehandStroke?.call(List.from(activeStroke!));
-              }
-              setState(() => activeStroke = null);
-              previousFocalPoint = null;
-              previousScaleGesture = null;
-            },
-            onTapUp: (gestureDetails) {
-              detectTooltipIntersection(gestureDetails.localPosition);
-              if (widget.onTap != null) {
-                final worldCoordinates = transformScreenToWorld(
-                  gestureDetails.localPosition.dx,
-                  gestureDetails.localPosition.dy,
-                );
-                widget.onTap!(worldCoordinates.dx, worldCoordinates.dy);
-              }
-            },
-            onLongPressStart: (gestureDetails) {
-              if (widget.onLongPress != null) {
-                final worldCoordinates = transformScreenToWorld(
-                  gestureDetails.localPosition.dx,
-                  gestureDetails.localPosition.dy,
-                );
-                widget.onLongPress!(worldCoordinates.dx, worldCoordinates.dy);
-              }
-            },
-            child: Stack(
-              children: [
-                CustomPaint(
-                  size: availableSize,
-                  painter: CanvasRenderer(
-                    origin: currentOrigin,
-                    scale: currentScale,
-                    items: widget.items,
-                    freehandItems: List.from(recordedStrokes),
-                    currentStroke: activeStroke,
-                    showGrid: isGridVisible,
-                    freehandColor: widget.freehandColor,
-                    freehandWidth: widget.freehandWidth,
-                    theme: widget.theme,
-                    worldToScreen: transformWorldToScreen,
-                    screenToWorld: transformScreenToWorld,
-                  ),
-                ),
-                ...widget.widgetItems.map((widgetItem) {
-                  final mappedScreenPoint = transformWorldToScreen(
-                    widgetItem.x,
-                    widgetItem.y,
-                  );
-                  return Positioned(
-                    left: mappedScreenPoint.dx -
-                        50 * (widgetItem.alignment.x + 1) / 2,
-                    top: mappedScreenPoint.dy -
-                        50 * (widgetItem.alignment.y + 1) / 2,
-                    child: widgetItem.child,
-                  );
-                }),
-                if (widget.showLegend)
-                  LegendWidget(items: widget.items, theme: widget.theme),
-                if (activeTooltip != null)
-                  TooltipWidget(
-                    tooltipData: activeTooltip!,
-                    size: availableSize,
-                    theme: widget.theme,
-                  ),
-                if (widget.showControls && widget.isFullScreen)
-                  FloatingToolbar(
-                    theme: widget.theme,
-                    drawingMode: isDrawingModeActive,
-                    gridVisible: isGridVisible,
-                    isFullScreen: widget.isFullScreen,
-                    onFitToContent: fitToContent,
-                    onResetView: resetView,
-                    onZoomIn: () => zoomFromCenter(1.3),
-                    onZoomOut: () => zoomFromCenter(0.77),
-                    onToggleGrid: () =>
-                        setState(() => isGridVisible = !isGridVisible),
-                    onToggleDrawing: () => setState(
-                      () => isDrawingModeActive = !isDrawingModeActive,
+                },
+                onScaleUpdate: (gestureDetails) {
+                  if ((isDrawingModeActive || isEraserModeActive) &&
+                      gestureDetails.pointerCount == 1 &&
+                      activeStroke != null) {
+                    final worldCoordinates = transformScreenToWorld(
+                      gestureDetails.localFocalPoint.dx,
+                      gestureDetails.localFocalPoint.dy,
+                    );
+                    setState(() {
+                      activeStroke = [...activeStroke!, worldCoordinates];
+                      if (isEraserModeActive)
+                        mousePosition = gestureDetails.localFocalPoint;
+                    });
+                  } else {
+                    setState(() {
+                      if (gestureDetails.pointerCount >= 2 &&
+                          previousScaleGesture != null) {
+                        final dynamicFactor =
+                            gestureDetails.scale / previousScaleGesture!;
+                        final proposedScale = currentScale * dynamicFactor;
+                        final clampedScale =
+                            proposedScale.clamp(0.00001, 5000000.0);
+                        final actualFactor = clampedScale / currentScale;
+                        currentOrigin = gestureDetails.localFocalPoint +
+                            (currentOrigin - gestureDetails.localFocalPoint) *
+                                actualFactor;
+                        currentScale = clampedScale;
+                        previousScaleGesture = gestureDetails.scale;
+                      } else if (previousFocalPoint != null) {
+                        currentOrigin += gestureDetails.localFocalPoint -
+                            previousFocalPoint!;
+                      }
+                      previousFocalPoint = gestureDetails.localFocalPoint;
+                    });
+                  }
+                },
+                onScaleEnd: (gestureDetails) {
+                  if ((isDrawingModeActive || isEraserModeActive) &&
+                      activeStroke != null &&
+                      activeStroke!.length > 1) {
+                    final finalizedStroke = FreehandItem(
+                      worldPoints: List.from(activeStroke!),
+                      color: widget.freehandColor,
+                      strokeWidth: isEraserModeActive
+                          ? currentEraserWidth
+                          : widget.freehandWidth,
+                      isEraser: isEraserModeActive,
+                      baseScale: currentScale,
+                    );
+                    setState(() {
+                      recordedStrokes.add(finalizedStroke);
+                      undoneStrokes.clear();
+                    });
+                    widget.onFreehandStroke?.call(List.from(activeStroke!));
+                  }
+                  setState(() => activeStroke = null);
+                  previousFocalPoint = null;
+                  previousScaleGesture = null;
+                },
+                onTapUp: (gestureDetails) {
+                  detectTooltipIntersection(gestureDetails.localPosition);
+                  if (widget.onTap != null) {
+                    final worldCoordinates = transformScreenToWorld(
+                      gestureDetails.localPosition.dx,
+                      gestureDetails.localPosition.dy,
+                    );
+                    widget.onTap!(worldCoordinates.dx, worldCoordinates.dy);
+                  }
+                },
+                onLongPressStart: (gestureDetails) {
+                  if (widget.onLongPress != null) {
+                    final worldCoordinates = transformScreenToWorld(
+                      gestureDetails.localPosition.dx,
+                      gestureDetails.localPosition.dy,
+                    );
+                    widget.onLongPress!(
+                        worldCoordinates.dx, worldCoordinates.dy);
+                  }
+                },
+                child: Stack(
+                  children: [
+                    CustomPaint(
+                      size: availableSize,
+                      painter: CanvasRenderer(
+                        origin: currentOrigin,
+                        scale: currentScale,
+                        items: widget.items,
+                        freehandItems: List.from(recordedStrokes),
+                        currentStroke: activeStroke,
+                        currentIsEraser: isEraserModeActive,
+                        showGrid: isGridVisible,
+                        freehandColor: widget.freehandColor,
+                        freehandWidth: widget.freehandWidth,
+                        eraserWidth: currentEraserWidth,
+                        mousePosition: mousePosition,
+                        theme: widget.theme,
+                        worldToScreen: transformWorldToScreen,
+                        screenToWorld: transformScreenToWorld,
+                      ),
                     ),
-                    onClearFreehand: clearFreehand,
-                    onUndoFreehand: undoFreehand,
-                    onRedoFreehand: redoFreehand,
-                    onToggleFullScreen: toggleFullScreen,
-                  ),
-                if (widget.showControls &&
-                    activeTooltip != null &&
-                    widget.isFullScreen)
-                  FloatingCoordinates(
-                    tooltipData: activeTooltip!,
-                    theme: widget.theme,
-                  ),
-                if (widget.showControls && !widget.isFullScreen)
-                  Positioned(
-                    top: 12,
-                    right: 12,
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: BackdropFilter(
-                        filter: ui.ImageFilter.blur(sigmaX: 12.0, sigmaY: 12.0),
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: widget.theme.background.withOpacity(0.75),
-                            border: Border.all(
-                              color: widget.theme.axisColor.withOpacity(0.1),
-                              width: 1,
+                    ...widget.widgetItems.map((widgetItem) {
+                      final mappedScreenPoint = transformWorldToScreen(
+                        widgetItem.x,
+                        widgetItem.y,
+                      );
+                      return Positioned(
+                        left: mappedScreenPoint.dx -
+                            50 * (widgetItem.alignment.x + 1) / 2,
+                        top: mappedScreenPoint.dy -
+                            50 * (widgetItem.alignment.y + 1) / 2,
+                        child: widgetItem.child,
+                      );
+                    }),
+                    if (widget.showLegend)
+                      LegendWidget(items: widget.items, theme: widget.theme),
+                    if (activeTooltip != null)
+                      TooltipWidget(
+                        tooltipData: activeTooltip!,
+                        size: availableSize,
+                        theme: widget.theme,
+                      ),
+                    if (widget.showControls && widget.isFullScreen)
+                      FloatingToolbar(
+                        theme: widget.theme,
+                        drawingMode: isDrawingModeActive,
+                        eraserMode: isEraserModeActive,
+                        gridVisible: isGridVisible,
+                        isFullScreen: widget.isFullScreen,
+                        onFitToContent: fitToContent,
+                        onResetView: resetView,
+                        onZoomIn: () => zoomFromCenter(1.3),
+                        onZoomOut: () => zoomFromCenter(0.77),
+                        onToggleGrid: () =>
+                            setState(() => isGridVisible = !isGridVisible),
+                        onToggleDrawing: () => setState(() {
+                          isDrawingModeActive = !isDrawingModeActive;
+                          if (isDrawingModeActive) isEraserModeActive = false;
+                        }),
+                        onToggleEraser: () => setState(() {
+                          isEraserModeActive = !isEraserModeActive;
+                          if (isEraserModeActive) isDrawingModeActive = false;
+                          if (!isEraserModeActive) mousePosition = null;
+                        }),
+                        onClearFreehand: clearFreehand,
+                        onUndoFreehand: undoFreehand,
+                        onRedoFreehand: redoFreehand,
+                        onToggleFullScreen: toggleFullScreen,
+                      ),
+                    if (widget.showControls &&
+                        activeTooltip != null &&
+                        widget.isFullScreen)
+                      FloatingCoordinates(
+                        tooltipData: activeTooltip!,
+                        theme: widget.theme,
+                      ),
+                    if (widget.showControls && !widget.isFullScreen)
+                      Positioned(
+                        top: 12,
+                        right: 12,
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: BackdropFilter(
+                            filter:
+                                ui.ImageFilter.blur(sigmaX: 12.0, sigmaY: 12.0),
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color:
+                                    widget.theme.background.withOpacity(0.75),
+                                border: Border.all(
+                                  color:
+                                      widget.theme.axisColor.withOpacity(0.1),
+                                  width: 1,
+                                ),
+                              ),
+                              child: ControlIconButton(
+                                iconData: Icons.fullscreen_rounded,
+                                tooltipText: 'Pantalla Completa',
+                                onTapCallback: toggleFullScreen,
+                                activeTheme: widget.theme,
+                              ),
                             ),
-                          ),
-                          child: ControlIconButton(
-                            iconData: Icons.fullscreen_rounded,
-                            tooltipText: 'Pantalla Completa',
-                            onTapCallback: toggleFullScreen,
-                            activeTheme: widget.theme,
                           ),
                         ),
                       ),
-                    ),
-                  ),
-              ],
+                    if (isEraserModeActive)
+                      Positioned(
+                        bottom: 24,
+                        left: 0,
+                        right: 0,
+                        child: Center(
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(16),
+                            child: BackdropFilter(
+                              filter: ui.ImageFilter.blur(
+                                  sigmaX: 12.0, sigmaY: 12.0),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 16, vertical: 8),
+                                decoration: BoxDecoration(
+                                  color:
+                                      widget.theme.background.withOpacity(0.75),
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(
+                                    color:
+                                        widget.theme.axisColor.withOpacity(0.1),
+                                    width: 1,
+                                  ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.08),
+                                      blurRadius: 16,
+                                      offset: const Offset(0, 4),
+                                    ),
+                                  ],
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.cleaning_services_rounded,
+                                        size: 16,
+                                        color: widget.theme.axisColor
+                                            .withOpacity(0.7)),
+                                    const SizedBox(width: 8),
+                                    SizedBox(
+                                      width: 150,
+                                      child: SliderTheme(
+                                        data: const SliderThemeData(
+                                          trackHeight: 2.0,
+                                          thumbShape: RoundSliderThumbShape(
+                                              enabledThumbRadius: 6.0),
+                                          overlayShape: RoundSliderOverlayShape(
+                                              overlayRadius: 14.0),
+                                        ),
+                                        child: Slider(
+                                          value: currentEraserWidth,
+                                          min: 5,
+                                          max: 50,
+                                          onChanged: (val) => setState(
+                                              () => currentEraserWidth = val),
+                                          activeColor: widget.theme.axisColor,
+                                          inactiveColor: widget.theme.axisColor
+                                              .withOpacity(0.2),
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    SizedBox(
+                                      width: 40,
+                                      child: Text(
+                                        '${currentEraserWidth.toInt()} px',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w600,
+                                          color: widget.theme.axisColor
+                                              .withOpacity(0.8),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
             ),
           ),
-        ),
-      ),
-    );
+        ));
   }
 }
 
@@ -646,9 +771,12 @@ class CanvasRenderer extends CustomPainter {
   final List<CartesianItem> items;
   final List<FreehandItem> freehandItems;
   final List<Offset>? currentStroke;
+  final bool currentIsEraser;
   final bool showGrid;
   final Color freehandColor;
   final double freehandWidth;
+  final double eraserWidth;
+  final Offset? mousePosition;
   final CartesianCanvasTheme theme;
   final WorldToScreen worldToScreen;
   final ScreenToWorld screenToWorld;
@@ -659,9 +787,12 @@ class CanvasRenderer extends CustomPainter {
     required this.items,
     required this.freehandItems,
     required this.currentStroke,
+    required this.currentIsEraser,
     required this.showGrid,
     required this.freehandColor,
     required this.freehandWidth,
+    required this.eraserWidth,
+    required this.mousePosition,
     required this.theme,
     required this.worldToScreen,
     required this.screenToWorld,
@@ -679,30 +810,49 @@ class CanvasRenderer extends CustomPainter {
       item.paint(canvas, size, worldToScreen, screenToWorld, scale);
     }
 
-    for (final stroke in freehandItems) {
-      stroke.paint(canvas, size, worldToScreen, screenToWorld, scale);
+    if (freehandItems.isNotEmpty ||
+        (currentStroke != null && currentStroke!.length > 1)) {
+      canvas.saveLayer(Rect.fromLTWH(0, 0, size.width, size.height), Paint());
+
+      for (final stroke in freehandItems) {
+        stroke.paint(canvas, size, worldToScreen, screenToWorld, scale);
+      }
+
+      if (currentStroke != null && currentStroke!.length > 1) {
+        final activeStrokePaint = Paint()
+          ..color = currentIsEraser ? Colors.transparent : freehandColor
+          ..blendMode = currentIsEraser ? BlendMode.clear : BlendMode.srcOver
+          ..strokeWidth = currentIsEraser ? eraserWidth : freehandWidth
+          ..style = PaintingStyle.stroke
+          ..strokeCap = StrokeCap.round
+          ..strokeJoin = StrokeJoin.round;
+        final activePath = Path()
+          ..moveTo(
+            worldToScreen(currentStroke![0].dx, currentStroke![0].dy).dx,
+            worldToScreen(currentStroke![0].dx, currentStroke![0].dy).dy,
+          );
+        for (int i = 1; i < currentStroke!.length; i++) {
+          final mappedScreenPoint = worldToScreen(
+            currentStroke![i].dx,
+            currentStroke![i].dy,
+          );
+          activePath.lineTo(mappedScreenPoint.dx, mappedScreenPoint.dy);
+        }
+        canvas.drawPath(activePath, activeStrokePaint);
+      }
+
+      canvas.restore();
     }
 
-    if (currentStroke != null && currentStroke!.length > 1) {
-      final activeStrokePaint = Paint()
-        ..color = freehandColor
-        ..strokeWidth = freehandWidth
-        ..style = PaintingStyle.stroke
-        ..strokeCap = StrokeCap.round
-        ..strokeJoin = StrokeJoin.round;
-      final activePath = Path()
-        ..moveTo(
-          worldToScreen(currentStroke![0].dx, currentStroke![0].dy).dx,
-          worldToScreen(currentStroke![0].dx, currentStroke![0].dy).dy,
-        );
-      for (int i = 1; i < currentStroke!.length; i++) {
-        final mappedScreenPoint = worldToScreen(
-          currentStroke![i].dx,
-          currentStroke![i].dy,
-        );
-        activePath.lineTo(mappedScreenPoint.dx, mappedScreenPoint.dy);
-      }
-      canvas.drawPath(activePath, activeStrokePaint);
+    if (currentIsEraser && mousePosition != null) {
+      canvas.drawCircle(
+        mousePosition!,
+        eraserWidth / 2,
+        Paint()
+          ..color = theme.axisColor.withOpacity(0.5)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1.5,
+      );
     }
   }
 
@@ -878,7 +1028,12 @@ class CanvasRenderer extends CustomPainter {
       oldDelegate.freehandItems.length != freehandItems.length ||
       oldDelegate.currentStroke != currentStroke ||
       oldDelegate.showGrid != showGrid ||
-      oldDelegate.theme != theme;
+      oldDelegate.theme != theme ||
+      oldDelegate.mousePosition != mousePosition ||
+      oldDelegate.currentIsEraser != currentIsEraser ||
+      oldDelegate.eraserWidth != eraserWidth ||
+      oldDelegate.freehandWidth != freehandWidth ||
+      oldDelegate.freehandColor != freehandColor;
 }
 
 class TooltipData {
@@ -1053,6 +1208,7 @@ class TooltipWidget extends StatelessWidget {
 class FloatingToolbar extends StatelessWidget {
   final CartesianCanvasTheme theme;
   final bool drawingMode;
+  final bool eraserMode;
   final bool gridVisible;
   final bool isFullScreen;
   final VoidCallback onFitToContent;
@@ -1061,6 +1217,7 @@ class FloatingToolbar extends StatelessWidget {
   final VoidCallback onZoomOut;
   final VoidCallback onToggleGrid;
   final VoidCallback onToggleDrawing;
+  final VoidCallback onToggleEraser;
   final VoidCallback onClearFreehand;
   final VoidCallback onUndoFreehand;
   final VoidCallback onRedoFreehand;
@@ -1069,6 +1226,7 @@ class FloatingToolbar extends StatelessWidget {
   const FloatingToolbar({
     required this.theme,
     required this.drawingMode,
+    required this.eraserMode,
     required this.gridVisible,
     required this.isFullScreen,
     required this.onFitToContent,
@@ -1077,6 +1235,7 @@ class FloatingToolbar extends StatelessWidget {
     required this.onZoomOut,
     required this.onToggleGrid,
     required this.onToggleDrawing,
+    required this.onToggleEraser,
     required this.onClearFreehand,
     required this.onUndoFreehand,
     required this.onRedoFreehand,
@@ -1179,6 +1338,16 @@ class FloatingToolbar extends StatelessWidget {
                   onTapCallback: onToggleDrawing,
                   activeTheme: theme,
                   isActiveState: drawingMode,
+                ),
+                const SizedBox(height: 8),
+                ControlIconButton(
+                  iconData: eraserMode
+                      ? Icons.cleaning_services_rounded
+                      : Icons.cleaning_services_outlined,
+                  tooltipText: 'Borrador',
+                  onTapCallback: onToggleEraser,
+                  activeTheme: theme,
+                  isActiveState: eraserMode,
                 ),
                 const SizedBox(height: 8),
                 ControlIconButton(

@@ -598,12 +598,16 @@ class FreehandItem extends CartesianItem {
   final Color color;
   final double strokeWidth;
   final StrokeCap cap;
+  final bool isEraser;
+  final double baseScale;
 
   const FreehandItem({
     required this.worldPoints,
     this.color = const Color(0xFF1F2937),
     this.strokeWidth = 2.5,
     this.cap = StrokeCap.round,
+    this.isEraser = false,
+    this.baseScale = 1.0,
   });
 
   @override
@@ -616,8 +620,9 @@ class FreehandItem extends CartesianItem {
   ) {
     if (worldPoints.length < 2) return;
     final strokePaint = Paint()
-      ..color = color
-      ..strokeWidth = strokeWidth
+      ..color = isEraser ? Colors.transparent : color
+      ..blendMode = isEraser ? BlendMode.clear : BlendMode.srcOver
+      ..strokeWidth = strokeWidth * (scale / baseScale)
       ..style = PaintingStyle.stroke
       ..strokeCap = cap
       ..strokeJoin = StrokeJoin.round;

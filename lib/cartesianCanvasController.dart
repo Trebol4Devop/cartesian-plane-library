@@ -9,6 +9,8 @@ abstract class CartesianCanvasDelegate {
   Future<ui.Image?> captureImage();
   bool get drawingMode;
   void setDrawingMode(bool val);
+  bool get eraserMode;
+  void setEraserMode(bool val);
   void clearFreehand();
   void undoFreehand();
   void redoFreehand();
@@ -43,6 +45,13 @@ class CartesianCanvasController extends ChangeNotifier {
 
   void setDrawingMode(bool isEnabled) =>
       canvasDelegate?.setDrawingMode(isEnabled);
+
+  bool get eraserMode => canvasDelegate?.eraserMode ?? false;
+
+  set eraserMode(bool isEnabled) => canvasDelegate?.setEraserMode(isEnabled);
+
+  void setEraserMode(bool isEnabled) =>
+      canvasDelegate?.setEraserMode(isEnabled);
 
   void clearFreehand() => canvasDelegate?.clearFreehand();
 
