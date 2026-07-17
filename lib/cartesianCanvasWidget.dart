@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'dart:ui' as ui;
+import 'package:flutter/services.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -62,6 +63,7 @@ class CartesianCanvasState extends State<CartesianCanvas>
   bool isDrawingModeActive = false;
   bool isGridVisible = true;
   final List<FreehandItem> recordedStrokes = [];
+  final List<FreehandItem> undoneStrokes = [];
   final GlobalKey boundaryRepaintKey = GlobalKey();
 
   @override
@@ -82,7 +84,28 @@ class CartesianCanvasState extends State<CartesianCanvas>
 
   @override
   void clearFreehand() {
-    setState(() => recordedStrokes.clear());
+    setState(() {
+      recordedStrokes.clear();
+      undoneStrokes.clear();
+    });
+  }
+
+  @override
+  void undoFreehand() {
+    if (recordedStrokes.isNotEmpty) {
+      setState(() {
+        undoneStrokes.add(recordedStrokes.removeLast());
+      });
+    }
+  }
+
+  @override
+  void redoFreehand() {
+    if (undoneStrokes.isNotEmpty) {
+      setState(() {
+        recordedStrokes.add(undoneStrokes.removeLast());
+      });
+    }
   }
 
   @override
@@ -356,35 +379,61 @@ class CartesianCanvasState extends State<CartesianCanvas>
           });
         }
 
-        return Stack(
-          children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                if (widget.title != null)
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-                    child: Text(
-                      widget.title!,
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                        color: widget.theme.axisColor,
-                        letterSpacing: -0.3,
+        return Focus(
+          autofocus: true,
+          onKeyEvent: (node, event) {
+            if (event is KeyDownEvent) {
+              if (event.logicalKey == LogicalKeyboardKey.delete) {
+                undoFreehand();
+                return KeyEventResult.handled;
+              }
+              if (event.logicalKey == LogicalKeyboardKey.keyZ &&
+                  HardwareKeyboard.instance.isControlPressed) {
+                if (HardwareKeyboard.instance.isShiftPressed) {
+                  redoFreehand();
+                } else {
+                  undoFreehand();
+                }
+                return KeyEventResult.handled;
+              }
+              if (event.logicalKey == LogicalKeyboardKey.keyY &&
+                  HardwareKeyboard.instance.isControlPressed) {
+                redoFreehand();
+                return KeyEventResult.handled;
+              }
+            }
+            return KeyEventResult.ignored;
+          },
+          child: Stack(
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  if (widget.title != null)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                      child: Text(
+                        widget.title!,
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: widget.theme.axisColor,
+                          letterSpacing: -0.3,
+                        ),
                       ),
                     ),
-                  ),
-                Expanded(
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(
-                      (widget.title != null || widget.isFullScreen) ? 0 : 12,
+                  Expanded(
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(
+                        (widget.title != null || widget.isFullScreen) ? 0 : 12,
+                      ),
+                      child: renderCanvasLayer(availableSize),
                     ),
-                    child: renderCanvasLayer(availableSize),
                   ),
-                ),
-              ],
-            ),
-          ],
+                ],
+              ),
+            ],
+          ),
         );
       },
     );
@@ -463,6 +512,7 @@ class CartesianCanvasState extends State<CartesianCanvas>
                 );
                 setState(() {
                   recordedStrokes.add(finalizedStroke);
+                  undoneStrokes.clear();
                 });
                 widget.onFreehandStroke?.call(List.from(activeStroke!));
               }
@@ -497,7 +547,7 @@ class CartesianCanvasState extends State<CartesianCanvas>
                     origin: currentOrigin,
                     scale: currentScale,
                     items: widget.items,
-                    freehandItems: recordedStrokes,
+                    freehandItems: List.from(recordedStrokes),
                     currentStroke: activeStroke,
                     showGrid: isGridVisible,
                     freehandColor: widget.freehandColor,
@@ -544,6 +594,8 @@ class CartesianCanvasState extends State<CartesianCanvas>
                       () => isDrawingModeActive = !isDrawingModeActive,
                     ),
                     onClearFreehand: clearFreehand,
+                    onUndoFreehand: undoFreehand,
+                    onRedoFreehand: redoFreehand,
                     onToggleFullScreen: toggleFullScreen,
                   ),
                 if (widget.showControls &&
@@ -1010,6 +1062,8 @@ class FloatingToolbar extends StatelessWidget {
   final VoidCallback onToggleGrid;
   final VoidCallback onToggleDrawing;
   final VoidCallback onClearFreehand;
+  final VoidCallback onUndoFreehand;
+  final VoidCallback onRedoFreehand;
   final VoidCallback onToggleFullScreen;
 
   const FloatingToolbar({
@@ -1024,6 +1078,8 @@ class FloatingToolbar extends StatelessWidget {
     required this.onToggleGrid,
     required this.onToggleDrawing,
     required this.onClearFreehand,
+    required this.onUndoFreehand,
+    required this.onRedoFreehand,
     required this.onToggleFullScreen,
   });
 
@@ -1123,6 +1179,20 @@ class FloatingToolbar extends StatelessWidget {
                   onTapCallback: onToggleDrawing,
                   activeTheme: theme,
                   isActiveState: drawingMode,
+                ),
+                const SizedBox(height: 8),
+                ControlIconButton(
+                  iconData: Icons.undo_rounded,
+                  tooltipText: 'Deshacer',
+                  onTapCallback: onUndoFreehand,
+                  activeTheme: theme,
+                ),
+                const SizedBox(height: 8),
+                ControlIconButton(
+                  iconData: Icons.redo_rounded,
+                  tooltipText: 'Rehacer',
+                  onTapCallback: onRedoFreehand,
+                  activeTheme: theme,
                 ),
                 const SizedBox(height: 8),
                 ControlIconButton(

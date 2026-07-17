@@ -10,6 +10,8 @@ abstract class CartesianCanvasDelegate {
   bool get drawingMode;
   void setDrawingMode(bool val);
   void clearFreehand();
+  void undoFreehand();
+  void redoFreehand();
   bool get gridVisible;
   void setGridVisible(bool val);
 }
@@ -43,6 +45,10 @@ class CartesianCanvasController extends ChangeNotifier {
       canvasDelegate?.setDrawingMode(isEnabled);
 
   void clearFreehand() => canvasDelegate?.clearFreehand();
+
+  void undoFreehand() => canvasDelegate?.undoFreehand();
+
+  void redoFreehand() => canvasDelegate?.redoFreehand();
 
   bool get gridVisible => canvasDelegate?.gridVisible ?? true;
 
