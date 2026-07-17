@@ -218,7 +218,7 @@ class CartesianCanvasState extends State<CartesianCanvas>
     final calculatedNewScale = min(
       computedScaleX,
       computedScaleY,
-    ).clamp(1.0, 2000.0);
+    ).clamp(0.00001, 5000000.0);
     final centerX = (minimumX + maximumX) / 2;
     final centerY = (minimumY + maximumY) / 2;
 
@@ -245,8 +245,10 @@ class CartesianCanvasState extends State<CartesianCanvas>
 
   void applyZoomAtPoint(Offset focalPoint, double zoomFactor) {
     setState(() {
-      currentOrigin = focalPoint + (currentOrigin - focalPoint) * zoomFactor;
-      currentScale = (currentScale * zoomFactor).clamp(1.0, 3000.0);
+      final clampedScale = (currentScale * zoomFactor).clamp(0.00001, 5000000.0);
+      final actualFactor = clampedScale / currentScale;
+      currentOrigin = focalPoint + (currentOrigin - focalPoint) * actualFactor;
+      currentScale = clampedScale;
     });
   }
 
@@ -434,13 +436,13 @@ class CartesianCanvasState extends State<CartesianCanvas>
                       previousScaleGesture != null) {
                     final dynamicFactor =
                         gestureDetails.scale / previousScaleGesture!;
+                    final proposedScale = currentScale * dynamicFactor;
+                    final clampedScale = proposedScale.clamp(0.00001, 5000000.0);
+                    final actualFactor = clampedScale / currentScale;
                     currentOrigin = gestureDetails.localFocalPoint +
                         (currentOrigin - gestureDetails.localFocalPoint) *
-                            dynamicFactor;
-                    currentScale = (currentScale * dynamicFactor).clamp(
-                      1.0,
-                      3000.0,
-                    );
+                            actualFactor;
+                    currentScale = clampedScale;
                     previousScaleGesture = gestureDetails.scale;
                   } else if (previousFocalPoint != null) {
                     currentOrigin +=
