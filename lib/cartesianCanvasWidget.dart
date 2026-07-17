@@ -477,6 +477,14 @@ class CartesianCanvasState extends State<CartesianCanvas>
                   setState(() => mousePosition = pointerEvent.localPosition);
                 }
               },
+              onPointerDown: (pointerEvent) {
+                if (pointerEvent.buttons == kSecondaryButton) {
+                  setState(() {
+                    isDrawingModeActive = !isDrawingModeActive;
+                    if (isDrawingModeActive) isEraserModeActive = false;
+                  });
+                }
+              },
               child: GestureDetector(
                 onScaleStart: (gestureDetails) {
                   if ((isDrawingModeActive || isEraserModeActive) &&
