@@ -313,7 +313,7 @@ class FunctionItem extends CartesianItem {
       ..strokeJoin = StrokeJoin.round;
 
     try {
-      final expressionParser = Parser();
+      final expressionParser = GrammarParser();
       final mathExpression = expressionParser.parse(equation);
       final contextModel = ContextModel();
       final functionPath = Path();
