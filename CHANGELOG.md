@@ -1,3 +1,8 @@
+## 0.1.1
+
+* Release de mantenimiento para la nueva versión del paquete.
+* Actualización de metadatos y ejemplo de instalación en la documentación.
+
 ## 0.0.1
 
 * Initial release.

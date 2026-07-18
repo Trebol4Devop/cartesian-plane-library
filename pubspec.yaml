@@ -1,6 +1,6 @@
 name: cartesian_plane
 description: "A comprehensive Flutter package for rendering an interactive Cartesian plane with support for mathematical functions, series, and freehand drawing."
-version: 0.0.1
+version: 0.1.1
 homepage: "https://github.com/Trebol4Devop/cartesian-plane-library"
 repository: "https://github.com/Trebol4Devop/cartesian-plane-library"
 
@@ -11,7 +11,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  math_expressions: ^2.4.0
+  math_expressions: ^3.1.0
 
 dev_dependencies:
   flutter_test:

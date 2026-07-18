@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:cartesian_plane/cartesianPlane.dart';
+import 'package:cartesian_plane/cartesian_plane.dart';
 
 void main() {
   runApp(const MyApp());
