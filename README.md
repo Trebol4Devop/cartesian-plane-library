@@ -17,5 +17,5 @@ Agrega el paquete a tu proyecto en el archivo `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  cartesian_plane: ^0.0.1
+  cartesian_plane: ^0.1.1
 ```
