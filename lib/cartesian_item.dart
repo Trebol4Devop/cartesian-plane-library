@@ -1,13 +1,25 @@
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
-import 'package:math_expressions/math_expressions.dart' hide Stack;
+import 'package:math_expressions/math_expressions.dart';
 
+/// A function signature for converting world coordinates to screen coordinates.
 typedef WorldToScreen = Offset Function(double x, double y);
+
+/// A function signature for converting screen coordinates to world coordinates.
 typedef ScreenToWorld = Offset Function(double px, double py);
 
+/// The base class for all drawable items on the Cartesian Plane.
+///
+/// Subclass this to create custom shapes, functions, or annotations that can be
+/// rendered onto the [CartesianCanvas].
 abstract class CartesianItem {
+  /// Default constructor for [CartesianItem].
   const CartesianItem();
 
+  /// Called by the canvas to paint this item onto the screen.
+  /// 
+  /// The [canvas] and [size] are provided by the Flutter framework. Use [worldToScreen] 
+  /// to translate mathematical coordinates into on-screen pixels.
   void paint(
     Canvas canvas,
     Size size,
@@ -17,13 +29,27 @@ abstract class CartesianItem {
   );
 }
 
+/// An item that represents a single point (coordinate) on the Cartesian Plane.
 class PointItem extends CartesianItem {
+  /// The X coordinate in the cartesian space.
   final double x;
+  
+  /// The Y coordinate in the cartesian space.
   final double y;
+  
+  /// The color of the point dot.
   final Color color;
+  
+  /// The radius of the point dot in screen pixels.
   final double radius;
+  
+  /// An optional text label displayed next to the point.
   final String? label;
+  
+  /// The style applied to the [label] text.
   final TextStyle? labelStyle;
+  
+  /// The pixel offset applied to the label relative to the center of the point.
   final Offset labelOffset;
 
   const PointItem({
@@ -37,7 +63,13 @@ class PointItem extends CartesianItem {
   });
 
   @override
-  void paint(Canvas canvas, Size size, WorldToScreen worldToScreen, ScreenToWorld screenToWorld, double scale) {
+  void paint(
+    Canvas canvas,
+    Size size,
+    WorldToScreen worldToScreen,
+    ScreenToWorld screenToWorld,
+    double scale,
+  ) {
     final position = worldToScreen(x, y);
 
     canvas.drawCircle(
@@ -62,13 +94,18 @@ class PointItem extends CartesianItem {
       final textPainter = TextPainter(
         text: TextSpan(
           text: label,
-          style: labelStyle ?? TextStyle(fontSize: 12.5, color: color, fontWeight: FontWeight.w700),
+          style: labelStyle ??
+              TextStyle(
+                fontSize: 12.5,
+                color: color,
+                fontWeight: FontWeight.w700,
+              ),
         ),
         textDirection: TextDirection.ltr,
       )..layout();
-      
+
       final labelPos = position + labelOffset;
-      
+
       textPainter.paint(canvas, labelPos);
     }
   }
@@ -145,13 +182,26 @@ class SeriesItem extends CartesianItem {
       showPoints: showPoints,
       points: rows
           .where((r) => r[mapXKey] != null && r[mapYKey] != null)
-          .map((r) => SeriesPoint.fromMap(r, mapXKey: mapXKey, mapYKey: mapYKey, mapLabelKey: mapLabelKey))
+          .map(
+            (r) => SeriesPoint.fromMap(
+              r,
+              mapXKey: mapXKey,
+              mapYKey: mapYKey,
+              mapLabelKey: mapLabelKey,
+            ),
+          )
           .toList(),
     );
   }
 
   @override
-  void paint(Canvas canvas, Size size, WorldToScreen worldToScreen, ScreenToWorld screenToWorld, double scale) {
+  void paint(
+    Canvas canvas,
+    Size size,
+    WorldToScreen worldToScreen,
+    ScreenToWorld screenToWorld,
+    double scale,
+  ) {
     if (points.isEmpty) return;
 
     final screenPoints = points.map((p) => worldToScreen(p.x, p.y)).toList();
@@ -161,7 +211,7 @@ class SeriesItem extends CartesianItem {
       for (int i = 1; i < screenPoints.length; i++) {
         path.lineTo(screenPoints[i].dx, screenPoints[i].dy);
       }
-      
+
       canvas.drawPath(
         path.shift(const Offset(0, 2)),
         Paint()
@@ -190,8 +240,12 @@ class SeriesItem extends CartesianItem {
         final currentScreenPoint = screenPoints[i];
         final currentRadius = currentPoint.radius ?? pointRadius;
         final currentColor = currentPoint.color ?? color;
-        
-        canvas.drawCircle(currentScreenPoint, currentRadius, Paint()..color = currentColor);
+
+        canvas.drawCircle(
+          currentScreenPoint,
+          currentRadius,
+          Paint()..color = currentColor,
+        );
         canvas.drawCircle(
           currentScreenPoint,
           currentRadius,
@@ -200,12 +254,16 @@ class SeriesItem extends CartesianItem {
             ..style = PaintingStyle.stroke
             ..strokeWidth = 1.2,
         );
-        
+
         if (currentPoint.label != null) {
           final textPainter = TextPainter(
             text: TextSpan(
               text: currentPoint.label,
-              style: TextStyle(fontSize: 11, color: currentColor, fontWeight: FontWeight.w600),
+              style: TextStyle(
+                fontSize: 11,
+                color: currentColor,
+                fontWeight: FontWeight.w600,
+              ),
             ),
             textDirection: TextDirection.ltr,
           )..layout();
@@ -230,7 +288,13 @@ class FunctionItem extends CartesianItem {
   });
 
   @override
-  void paint(Canvas canvas, Size size, WorldToScreen worldToScreen, ScreenToWorld screenToWorld, double scale) {
+  void paint(
+    Canvas canvas,
+    Size size,
+    WorldToScreen worldToScreen,
+    ScreenToWorld screenToWorld,
+    double scale,
+  ) {
     if (equation.trim().isEmpty) return;
 
     final shadowPaint = Paint()
@@ -249,7 +313,7 @@ class FunctionItem extends CartesianItem {
       ..strokeJoin = StrokeJoin.round;
 
     try {
-      final expressionParser = Parser();
+      final expressionParser = GrammarParser();
       final mathExpression = expressionParser.parse(equation);
       final contextModel = ContextModel();
       final functionPath = Path();
@@ -258,10 +322,14 @@ class FunctionItem extends CartesianItem {
       for (double pixelX = 0; pixelX <= size.width; pixelX += 2) {
         final worldCoordinates = screenToWorld(pixelX, 0);
         contextModel.bindVariable(Variable('x'), Number(worldCoordinates.dx));
-        final logicalY = mathExpression.evaluate(EvaluationType.REAL, contextModel) as double;
+        final logicalY = mathExpression.evaluate(
+            EvaluationType.REAL, contextModel) as double;
         final screenCoordinates = worldToScreen(worldCoordinates.dx, logicalY);
 
-        if (screenCoordinates.dy.isInfinite || screenCoordinates.dy.isNaN || screenCoordinates.dy < -size.height * 2 || screenCoordinates.dy > size.height * 3) {
+        if (screenCoordinates.dy.isInfinite ||
+            screenCoordinates.dy.isNaN ||
+            screenCoordinates.dy < -size.height * 2 ||
+            screenCoordinates.dy > size.height * 3) {
           isFirstPoint = true;
           continue;
         }
@@ -273,7 +341,7 @@ class FunctionItem extends CartesianItem {
           functionPath.lineTo(pixelX, screenCoordinates.dy);
         }
       }
-      
+
       canvas.drawPath(functionPath.shift(const Offset(0, 2)), shadowPaint);
       canvas.drawPath(functionPath, basePaint);
     } catch (_) {}
@@ -291,12 +359,22 @@ class TextItem extends CartesianItem {
     required this.x,
     required this.y,
     required this.text,
-    this.style = const TextStyle(fontSize: 14, color: Color(0xFF1F2937), fontWeight: FontWeight.w500),
+    this.style = const TextStyle(
+      fontSize: 14,
+      color: Color(0xFF1F2937),
+      fontWeight: FontWeight.w500,
+    ),
     this.offset = Offset.zero,
   });
 
   @override
-  void paint(Canvas canvas, Size size, WorldToScreen worldToScreen, ScreenToWorld screenToWorld, double scale) {
+  void paint(
+    Canvas canvas,
+    Size size,
+    WorldToScreen worldToScreen,
+    ScreenToWorld screenToWorld,
+    double scale,
+  ) {
     final position = worldToScreen(x, y) + offset;
     final textPainter = TextPainter(
       text: TextSpan(text: text, style: style),
@@ -327,7 +405,13 @@ class SegmentItem extends CartesianItem {
   });
 
   @override
-  void paint(Canvas canvas, Size size, WorldToScreen worldToScreen, ScreenToWorld screenToWorld, double scale) {
+  void paint(
+    Canvas canvas,
+    Size size,
+    WorldToScreen worldToScreen,
+    ScreenToWorld screenToWorld,
+    double scale,
+  ) {
     final point1 = worldToScreen(x1, y1);
     final point2 = worldToScreen(x2, y2);
 
@@ -348,7 +432,12 @@ class SegmentItem extends CartesianItem {
     }
   }
 
-  void drawDashedLine(Canvas canvas, Offset point1, Offset point2, Paint linePaint) {
+  void drawDashedLine(
+    Canvas canvas,
+    Offset point1,
+    Offset point2,
+    Paint linePaint,
+  ) {
     final patternArray = dashPattern!;
     final deltaX = point2.dx - point1.dx;
     final deltaY = point2.dy - point1.dy;
@@ -359,18 +448,34 @@ class SegmentItem extends CartesianItem {
     int patternIndex = 0;
     bool isDrawingSegment = true;
     while (accumulatedDistance < totalDistance) {
-      final currentSegmentLength = patternArray[patternIndex % patternArray.length];
-      final endDistance = (accumulatedDistance + currentSegmentLength).clamp(0, totalDistance);
-      final segmentStart = Offset(point1.dx + unitVectorX * accumulatedDistance, point1.dy + unitVectorY * accumulatedDistance);
-      final segmentEnd = Offset(point1.dx + unitVectorX * endDistance, point1.dy + unitVectorY * endDistance);
-      if (isDrawingSegment) canvas.drawLine(segmentStart, segmentEnd, linePaint);
+      final currentSegmentLength =
+          patternArray[patternIndex % patternArray.length];
+      final endDistance = (accumulatedDistance + currentSegmentLength).clamp(
+        0,
+        totalDistance,
+      );
+      final segmentStart = Offset(
+        point1.dx + unitVectorX * accumulatedDistance,
+        point1.dy + unitVectorY * accumulatedDistance,
+      );
+      final segmentEnd = Offset(
+        point1.dx + unitVectorX * endDistance,
+        point1.dy + unitVectorY * endDistance,
+      );
+      if (isDrawingSegment)
+        canvas.drawLine(segmentStart, segmentEnd, linePaint);
       accumulatedDistance += currentSegmentLength;
       patternIndex++;
       isDrawingSegment = !isDrawingSegment;
     }
   }
 
-  void drawArrowHead(Canvas canvas, Offset point1, Offset point2, Paint linePaint) {
+  void drawArrowHead(
+    Canvas canvas,
+    Offset point1,
+    Offset point2,
+    Paint linePaint,
+  ) {
     final deltaX = point2.dx - point1.dx;
     final deltaY = point2.dy - point1.dy;
     final totalDistance = Offset(deltaX, deltaY).distance;
@@ -378,20 +483,32 @@ class SegmentItem extends CartesianItem {
     final unitVectorX = deltaX / totalDistance;
     final unitVectorY = deltaY / totalDistance;
     final rotationAngle = 0.4;
-    
+
     final arrowPaint = Paint()
       ..color = linePaint.color
       ..style = PaintingStyle.fill;
 
     final arrowWing1 = Offset(
-      point2.dx - arrowSize * (unitVectorX * calculateCos(rotationAngle) + unitVectorY * calculateSin(rotationAngle)),
-      point2.dy - arrowSize * (unitVectorY * calculateCos(rotationAngle) - unitVectorX * calculateSin(rotationAngle)),
+      point2.dx -
+          arrowSize *
+              (unitVectorX * calculateCos(rotationAngle) +
+                  unitVectorY * calculateSin(rotationAngle)),
+      point2.dy -
+          arrowSize *
+              (unitVectorY * calculateCos(rotationAngle) -
+                  unitVectorX * calculateSin(rotationAngle)),
     );
     final arrowWing2 = Offset(
-      point2.dx - arrowSize * (unitVectorX * calculateCos(rotationAngle) - unitVectorY * calculateSin(rotationAngle)),
-      point2.dy - arrowSize * (unitVectorY * calculateCos(rotationAngle) + unitVectorX * calculateSin(rotationAngle)),
+      point2.dx -
+          arrowSize *
+              (unitVectorX * calculateCos(rotationAngle) -
+                  unitVectorY * calculateSin(rotationAngle)),
+      point2.dy -
+          arrowSize *
+              (unitVectorY * calculateCos(rotationAngle) +
+                  unitVectorX * calculateSin(rotationAngle)),
     );
-    
+
     final arrowPath = Path()
       ..moveTo(point2.dx, point2.dy)
       ..lineTo(arrowWing1.dx, arrowWing1.dy)
@@ -401,7 +518,8 @@ class SegmentItem extends CartesianItem {
     canvas.drawPath(arrowPath, arrowPaint);
   }
 
-  double calculateCos(double angleValue) => Offset(angleValue, 0).dx == 0 ? 1 : (1 - angleValue * angleValue / 2);
+  double calculateCos(double angleValue) =>
+      Offset(angleValue, 0).dx == 0 ? 1 : (1 - angleValue * angleValue / 2);
   double calculateSin(double angleValue) => angleValue;
 }
 
@@ -419,9 +537,16 @@ class PolygonItem extends CartesianItem {
   });
 
   @override
-  void paint(Canvas canvas, Size size, WorldToScreen worldToScreen, ScreenToWorld screenToWorld, double scale) {
+  void paint(
+    Canvas canvas,
+    Size size,
+    WorldToScreen worldToScreen,
+    ScreenToWorld screenToWorld,
+    double scale,
+  ) {
     if (vertices.length < 2) return;
-    final mappedPoints = vertices.map((v) => worldToScreen(v.$1, v.$2)).toList();
+    final mappedPoints =
+        vertices.map((v) => worldToScreen(v.$1, v.$2)).toList();
     final polygonPath = Path()..moveTo(mappedPoints[0].dx, mappedPoints[0].dy);
     for (int i = 1; i < mappedPoints.length; i++) {
       polygonPath.lineTo(mappedPoints[i].dx, mappedPoints[i].dy);
@@ -458,7 +583,13 @@ class ImageItem extends CartesianItem {
   });
 
   @override
-  void paint(Canvas canvas, Size size, WorldToScreen worldToScreen, ScreenToWorld screenToWorld, double scale) {
+  void paint(
+    Canvas canvas,
+    Size size,
+    WorldToScreen worldToScreen,
+    ScreenToWorld screenToWorld,
+    double scale,
+  ) {
     final anchorPoint = worldToScreen(x, y);
     final targetWidth = worldWidth * scale;
     final targetHeight = targetWidth * image.height / image.width;
@@ -466,14 +597,24 @@ class ImageItem extends CartesianItem {
     final leftPosition = anchorPoint.dx - targetWidth * (alignment.x + 1) / 2;
     final topPosition = anchorPoint.dy - targetHeight * (alignment.y + 1) / 2;
 
-    final sourceRect = Rect.fromLTWH(0, 0, image.width.toDouble(), image.height.toDouble());
-    final destinationRect = Rect.fromLTWH(leftPosition, topPosition, targetWidth, targetHeight);
-    
+    final sourceRect = Rect.fromLTWH(
+      0,
+      0,
+      image.width.toDouble(),
+      image.height.toDouble(),
+    );
+    final destinationRect = Rect.fromLTWH(
+      leftPosition,
+      topPosition,
+      targetWidth,
+      targetHeight,
+    );
+
     canvas.drawImageRect(
-      image, 
-      sourceRect, 
-      destinationRect, 
-      Paint()..filterQuality = FilterQuality.medium
+      image,
+      sourceRect,
+      destinationRect,
+      Paint()..filterQuality = FilterQuality.medium,
     );
   }
 }
@@ -483,20 +624,31 @@ class FreehandItem extends CartesianItem {
   final Color color;
   final double strokeWidth;
   final StrokeCap cap;
+  final bool isEraser;
+  final double baseScale;
 
   const FreehandItem({
     required this.worldPoints,
     this.color = const Color(0xFF1F2937),
     this.strokeWidth = 2.5,
     this.cap = StrokeCap.round,
+    this.isEraser = false,
+    this.baseScale = 1.0,
   });
 
   @override
-  void paint(Canvas canvas, Size size, WorldToScreen worldToScreen, ScreenToWorld screenToWorld, double scale) {
+  void paint(
+    Canvas canvas,
+    Size size,
+    WorldToScreen worldToScreen,
+    ScreenToWorld screenToWorld,
+    double scale,
+  ) {
     if (worldPoints.length < 2) return;
     final strokePaint = Paint()
-      ..color = color
-      ..strokeWidth = strokeWidth
+      ..color = isEraser ? Colors.transparent : color
+      ..blendMode = isEraser ? BlendMode.clear : BlendMode.srcOver
+      ..strokeWidth = strokeWidth * (scale / baseScale)
       ..style = PaintingStyle.stroke
       ..strokeCap = cap
       ..strokeJoin = StrokeJoin.round;
@@ -507,7 +659,10 @@ class FreehandItem extends CartesianItem {
         worldToScreen(worldPoints[0].dx, worldPoints[0].dy).dy,
       );
     for (int i = 1; i < worldPoints.length; i++) {
-      final currentScreenPoint = worldToScreen(worldPoints[i].dx, worldPoints[i].dy);
+      final currentScreenPoint = worldToScreen(
+        worldPoints[i].dx,
+        worldPoints[i].dy,
+      );
       strokePath.lineTo(currentScreenPoint.dx, currentScreenPoint.dy);
     }
     canvas.drawPath(strokePath, strokePaint);

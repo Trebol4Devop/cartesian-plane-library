@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:cartesian_plane/cartesianPlane.dart';
+import 'package:cartesian_plane/cartesian_plane.dart';
 
 void main() {
   runApp(const MyApp());
@@ -24,9 +24,7 @@ class CartesianPlaneScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Plano Cartesiano'),
-      ),
+      appBar: AppBar(title: const Text('Plano Cartesiano')),
       body: Container(
         width: 400,
         height: 300,
@@ -39,12 +37,7 @@ class CartesianPlaneScreen extends StatelessWidget {
               lineWidth: 2.0,
               name: "Parábola",
             ),
-            PointItem(
-              x: 2.0,
-              y: 4.0,
-              color: Colors.blue,
-              label: 'P(2, 4)',
-            ),
+            PointItem(x: 2.0, y: 4.0, color: Colors.blue, label: 'P(2, 4)'),
             SegmentItem(
               x1: -3.0,
               y1: 1.0,
@@ -53,12 +46,7 @@ class CartesianPlaneScreen extends StatelessWidget {
               color: Colors.green,
               arrow: true,
             ),
-            PointItem(
-              x: 200.0,
-              y: 40.0,
-              color: Colors.blue,
-              label: 'P(2, 4)',
-            ),
+            PointItem(x: 200.0, y: 40.0, color: Colors.blue, label: 'P(2, 4)'),
           ],
         ),
       ),
